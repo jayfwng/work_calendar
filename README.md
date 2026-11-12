@@ -22,21 +22,18 @@
 3. **Project Settings → API**에서 *Project URL*과 공개 키(*anon* 또는 *publishable*)를 복사
    - `service_role` / `secret` 키는 절대 쓰지 말 것
 
-### 2. 배포 (HTTPS 주소 만들기)
+### 2. 배포 (GitHub Pages)
 
-폰에 앱으로 설치하고 암호화 기능을 쓰려면 HTTPS 주소가 필요하다. 이 폴더(`work-calendar/`)를 그대로 올리면 된다.
+이 저장소 → **Settings → Pages** → Source: **Deploy from a branch**, Branch: **main** / **(root)** → Save.
+1~2분 뒤 `https://jayfwng.github.io/work_calendar/` 에서 열린다.
 
-- **Netlify Drop**: https://app.netlify.com/drop 에 폴더를 끌어다 놓기 (가입 필요, 무료)
-- **Cloudflare Pages**: Workers & Pages → Create → Pages → Upload assets
-- **GitHub Pages**: 저장소가 공개라면 Settings → Pages에서 바로 가능
-
-배포 전에 `config.js`에 1번의 URL과 공개 키를 넣어 두면 기기마다 입력하지 않아도 된다(넣지 않으면 앱 설정 화면에서 입력).
-앱 코드만 올라가고 일정 데이터는 올라가지 않는다.
+저장소에는 앱 코드만 있고 일정 데이터는 올라가지 않는다.
+`config.js`는 비워 두고 Supabase URL·공개 키는 각 기기 앱 설정 화면에서 입력한다.
 
 ### 3. 기기 연결
 
-1. **노트북**: 배포 주소 열기 → 설정 → 기기 간 동기화 → **새로 시작** → 동기화 키(25자) 확인
-2. **폰**: 배포 주소 열기 → 공유 버튼 → **홈 화면에 추가** (안드로이드는 메뉴 → 앱 설치)
+1. **노트북**: `https://jayfwng.github.io/work_calendar/` 열기 → 설정 → 기기 간 동기화 → **새로 시작** → 동기화 키(25자) 확인
+2. **폰**: 같은 주소 열기 → 공유 버튼 → **홈 화면에 추가** (안드로이드는 메뉴 → 앱 설치)
 3. 폰 앱 → 설정 → **키로 연결**에 노트북의 키 입력
 
 이후엔 수정할 때마다, 앱을 열 때마다, 열려 있는 동안 1분마다 자동으로 동기화된다.
