@@ -441,6 +441,7 @@ function openEvent(id, date, tplId){
     repeat:'none', repeatCount:4
   };
   modal = { type:'event', isNew:!ev, draft };
+  pushModalState();
   if (tplId) applyTemplate(tplId, true);
   renderModal();
   if (!ev && !tplId) setTimeout(() => { const f = document.querySelector('[data-f="title"]'); f && f.focus(); }, 30);
@@ -451,6 +452,7 @@ function openTemplate(id){
     ? { ...tp, tasks: tp.tasks.map(mkItem), items: tp.items.map(mkItem) }
     : { id:uid(), name:'', color:COLORS[2], time:'', memo:'', tasks:[], items:[] };
   modal = { type:'template', isNew:!tp, draft };
+  pushModalState();
   renderModal();
 }
 function applyTemplate(tplId, silent){
@@ -527,7 +529,13 @@ function renderModal(){
   }
   root.innerHTML = `<div class="backdrop" data-act="backdrop"><div class="sheet" role="dialog" aria-modal="true">${body}</div></div>`;
 }
-function closeModal(){ modal = null; renderModal(); }
+/* 뒤로가기(안드로이드 버튼·브라우저)로 편집 창만 닫히게: 창을 열 때 기록을 하나 쌓는다 */
+function pushModalState(){ if (!(history.state && history.state.modal)) history.pushState({ modal:1 }, ''); }
+window.addEventListener('popstate', () => { if (modal){ modal = null; renderModal(); } });
+function closeModal(){
+  modal = null; renderModal();
+  if (history.state && history.state.modal) history.back();
+}
 const cleanList = arr => arr.map(x => ({...x, text:x.text.trim()})).filter(x => x.text);
 
 function saveEvent(){
