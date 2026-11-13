@@ -19,6 +19,8 @@
   --line:#e2e5e9; --accent:#2f6fed; --accent-weak:#e7eefe; --danger:#d93838; --ok:#1f9d55;
   --sun:#d93838; --sat:#2f6fed; --shadow:0 1px 2px rgba(0,0,0,.05),0 2px 8px rgba(0,0,0,.04);
   color-scheme:light;
+  --inset-top:max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px));
+  --inset-bottom:max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px));
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
@@ -37,7 +39,7 @@ html,body{margin:0;background:var(--bg);color:var(--text)}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
   -webkit-font-smoothing:antialiased;font-size:15px;line-height:1.45}
 button,input,select,textarea{font:inherit;color:inherit}
-main{max-width:760px;margin:0 auto;padding:16px 16px calc(150px + env(safe-area-inset-bottom))}
+main{max-width:760px;margin:0 auto;padding:calc(16px + var(--inset-top)) 16px calc(150px + var(--inset-bottom))}
 .top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:6px 0 16px}
 .top h1{font-size:23px;margin:2px 0 0;letter-spacing:-.02em}
 .eyebrow{font-size:13px;color:var(--muted);font-weight:600}
@@ -125,18 +127,18 @@ svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke-l
 .note{font-size:12px;color:var(--muted);margin:8px 2px 0}
 
 /* nav + fab */
-nav.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);z-index:20;padding-bottom:env(safe-area-inset-bottom)}
+nav.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);z-index:20;padding-bottom:var(--inset-bottom)}
 nav.tabs .inner{max-width:760px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr)}
 nav.tabs button{background:none;border:0;color:var(--muted);font-size:11.5px;padding:8px 0 10px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
 nav.tabs button.on{color:var(--accent);font-weight:700}
 nav.tabs svg{width:22px;height:22px}
-.fab{position:fixed;right:max(16px,calc(50vw - 364px));bottom:calc(78px + env(safe-area-inset-bottom));width:54px;height:54px;border-radius:50%;
+.fab{position:fixed;right:max(16px,calc(50vw - 364px));bottom:calc(78px + var(--inset-bottom));width:54px;height:54px;border-radius:50%;
   background:var(--accent);color:#fff;border:0;box-shadow:0 6px 18px rgba(0,0,0,.22);display:grid;place-items:center;z-index:21;cursor:pointer}
 .fab svg{width:26px;height:26px}
 
 /* sheet */
 .backdrop{position:fixed;inset:0;background:rgba(0,0,0,.42);z-index:40;display:flex;align-items:flex-end;justify-content:center}
-.sheet{background:var(--surface);width:100%;max-width:640px;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:6px 16px calc(16px + env(safe-area-inset-bottom))}
+.sheet{background:var(--surface);width:100%;max-width:640px;max-height:calc(100vh - var(--inset-top) - 24px);overflow:auto;border-radius:18px 18px 0 0;padding:6px 16px calc(16px + var(--inset-bottom))}
 @media (min-width:700px){.backdrop{align-items:center}.sheet{border-radius:18px;max-height:88vh}}
 .sheet-h{position:sticky;top:0;background:var(--surface);display:flex;align-items:center;justify-content:space-between;padding:10px 0;z-index:1}
 .sheet-h h2{font-size:18px;margin:0}
@@ -162,7 +164,7 @@ textarea.inp{min-height:70px;resize:vertical}
 .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.04em;word-break:break-all}
 .prow.block{display:block}
 .inline{display:flex;gap:6px}
-.toast{position:fixed;left:50%;bottom:calc(140px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#222;color:#fff;padding:9px 16px;border-radius:20px;font-size:14px;z-index:60;opacity:0;transition:opacity .2s;pointer-events:none;max-width:calc(100vw - 32px)}
+.toast{position:fixed;left:50%;bottom:calc(140px + var(--inset-bottom));transform:translateX(-50%);background:#222;color:#fff;padding:9px 16px;border-radius:20px;font-size:14px;z-index:60;opacity:0;transition:opacity .2s;pointer-events:none;max-width:calc(100vw - 32px)}
 .toast.show{opacity:1}
 @media (max-width:420px){ .top h1{font-size:20px} .cell{min-height:60px} .chip{font-size:9.5px} }
 </style>
@@ -962,6 +964,17 @@ function syncSection(){
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') scheduleSync(); });
 window.addEventListener('online', () => scheduleSync());
 setInterval(() => { if (document.visibilityState === 'visible') sync(false); }, 60000);
+
+/* 안드로이드 앱(APK)의 뒤로가기 버튼: 편집 창 → 닫기, 다른 탭 → 오늘 탭, 오늘 탭 → 앱 종료 */
+const CapApp = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()
+  && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+if (CapApp){
+  CapApp.addListener('backButton', () => {
+    if (modal){ closeModal(); return; }
+    if (ui.view !== 'today'){ ui.view = 'today'; window.scrollTo(0,0); render(); return; }
+    CapApp.exitApp();
+  });
+}
 
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')){
   navigator.serviceWorker.register('sw.js').catch(() => {});
