@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "메인 창: 기본 기능만 허용 (앱 자체 명령 desktop_state / set_pinned / set_autostart 는 기본 허용)",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}

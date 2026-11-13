@@ -1,0 +1,120 @@
+name: Release (Android + Windows)
+
+# main에 코드가 올라오면(문서 변경 제외) 서명된 APK와 Windows 설치 파일을 만들어
+# 하나의 Release에 같이 올린다. Actions 탭 → Run workflow 로 직접 실행할 수도 있다.
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['**.md']
+  workflow_dispatch:
+
+permissions:
+  contents: write   # Release 만들기에만 사용
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  VERSION_NAME: 1.1.${{ github.run_number }}
+
+jobs:
+  android:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: 웹 파일 준비 + 안드로이드 프로젝트에 복사
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build:web
+          npx cap sync android
+      - name: APK 빌드 (서명)
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ] || [ -z "$KEYSTORE_PASSWORD" ]; then
+            echo "::error::Settings → Secrets and variables → Actions 에 KEYSTORE_BASE64, KEYSTORE_PASSWORD 를 등록하세요."; exit 1
+          fi
+          # 이전 Android 워크플로가 versionCode 4까지 썼으므로 100을 더해 업데이트 설치가 되게 한다
+          export VERSION_CODE=$((100 + ${{ github.run_number }}))
+          export KEYSTORE_FILE="$RUNNER_TEMP/release.p12"
+          echo "$KEYSTORE_BASE64" | base64 -d > "$KEYSTORE_FILE"
+          cd android && chmod +x gradlew && ./gradlew assembleRelease --no-daemon --stacktrace
+          rm -f "$KEYSTORE_FILE"
+      - name: 서명 확인
+        run: |
+          APK=android/app/build/outputs/apk/release/app-release.apk
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          mkdir -p dist
+          "$BT/apksigner" verify --print-certs "$APK" | tee dist/android-signer.txt
+          cp "$APK" "dist/work-calendar-$VERSION_NAME.apk"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android
+          path: dist/
+
+  windows:
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - name: Windows 설치 파일 빌드
+        shell: bash
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build:web
+          npx tauri build --config "{\"version\":\"$VERSION_NAME\"}"
+          mkdir -p dist
+          cp src-tauri/target/release/bundle/nsis/*-setup.exe "dist/work-calendar-setup-$VERSION_NAME.exe"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: dist/
+
+  release:
+    needs: [android, windows]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Release 올리기
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd dist
+          APK="work-calendar-$VERSION_NAME.apk"; EXE="work-calendar-setup-$VERSION_NAME.exe"
+          CERT=$(grep -m1 'SHA-256 digest' android-signer.txt | sed 's/.*: //')
+          APK_SHA=$(sha256sum "$APK" | cut -d' ' -f1); EXE_SHA=$(sha256sum "$EXE" | cut -d' ' -f1)
+          cat > notes.md <<EOF
+          업무캘린더 v$VERSION_NAME
+
+          | 기기 | 파일 | 설치 |
+          |---|---|---|
+          | 안드로이드 | \`$APK\` | 폰에서 받아서 열기 (기존 앱 위에 업데이트, 데이터 유지) |
+          | Windows | \`$EXE\` | 받아서 실행 → "PC 보호" 창이 뜨면 **추가 정보 → 실행** |
+
+          - 커밋: ${GITHUB_SHA::7}
+          - APK SHA-256: \`$APK_SHA\`
+          - EXE SHA-256: \`$EXE_SHA\`
+          - APK 서명 인증서 SHA-256: \`$CERT\` (매 버전 같아야 정상)
+          EOF
+          gh release create "v$VERSION_NAME" "$APK" "$EXE" --repo "$GITHUB_REPOSITORY" \
+            --title "업무캘린더 v$VERSION_NAME" --notes-file notes.md --target "$GITHUB_SHA"

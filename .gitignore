@@ -3,3 +3,5 @@ www/
 *.jks
 *.keystore
 *.p12
+src-tauri/target/
+src-tauri/gen/
