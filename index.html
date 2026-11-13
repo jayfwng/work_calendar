@@ -355,6 +355,21 @@ const ui = {
 let modal = null;             // { type:'event'|'template', isNew, draft }
 
 const tplById = id => state.templates.find(t => t.id === id);
+const ORD_KO = ['첫째','둘째','셋째','넷째','다섯째'];
+function weekOfMonth(d){ return Math.floor((d.getDate()-1)/7)+1; }   // 그 달에서 같은 요일이 몇 번째인지 (1~5)
+function nthWeekdayLabel(d){
+  const n = weekOfMonth(d);
+  return `${n>=5?'마지막':ORD_KO[n-1]} 주 ${DOW[d.getDay()]}요일`;   // 다섯째는 없는 달이 있어 '마지막 주'로
+}
+function nthWeekdayDate(year, month, weekday, nth){                  // month 0~11, nth 1~4 또는 'last'
+  if (nth === 'last' || nth >= 5){
+    const lastDay = new Date(year, month+1, 0).getDate();
+    const lastDow = new Date(year, month, lastDay).getDay();
+    return new Date(year, month, lastDay - ((lastDow - weekday + 7) % 7));
+  }
+  const firstDow = new Date(year, month, 1).getDay();
+  return new Date(year, month, 1 + ((weekday - firstDow + 7) % 7) + (nth-1)*7);
+}
 const ordOf = e => Number.isFinite(e.order) ? e.order : 1e9;      // 직접 정한 우선순위가 먼저, 없으면 시간순
 const cmpEv = (a,b) => a.date.localeCompare(b.date) || ordOf(a) - ordOf(b) || (a.time||'').localeCompare(b.time||'') || a.title.localeCompare(b.title);
 function nextOrder(date, exceptId){                                    // 그날 순서를 정해 둔 상태면 맨 뒤 번호
@@ -537,7 +552,7 @@ function openEvent(id, date, tplId){
   const ev = id && state.events.find(e => e.id === id);
   const draft = ev ? JSON.parse(JSON.stringify(ev)) : {
     id:uid(), title:'', date: date || todayStr(), time:'', memo:'', color:COLORS[0], templateId:'', done:false, tasks:[], items:[],
-    repeat:'none', repeatCount:4
+    repeat:'none', repeatCount:4, monthMode:'date'
   };
   modal = { type:'event', isNew:!ev, draft };
   pushModalState();
@@ -602,7 +617,11 @@ function renderModal(){
       <div class="field"><div class="label">반복</div><select class="inp" data-f="repeat">
         ${[['none','반복 안 함'],['weekly','매주'],['monthly','매월']].map(([v,l])=>`<option value="${v}" ${d.repeat===v?'selected':''}>${l}</option>`).join('')}</select></div>
       <div class="field"><div class="label">반복 횟수</div><input class="inp" type="number" min="2" max="52" data-f="repeatCount" value="${d.repeatCount}" ${d.repeat==='none'?'disabled':''}></div>
-    </div>` : ''}
+    </div>
+    ${d.repeat === 'monthly' && d.date ? `<div class="field"><div class="label">매월 기준</div><select class="inp" data-f="monthMode">
+        <option value="date" ${d.monthMode!=='weekday'?'selected':''}>같은 날짜 (매월 ${parse(d.date).getDate()}일)</option>
+        <option value="weekday" ${d.monthMode==='weekday'?'selected':''}>같은 요일 (매월 ${nthWeekdayLabel(parse(d.date))})</option>
+      </select><div class="hint">예: 매달 넷째 주 월요일 회의라면 “같은 요일”을 고르세요.</div></div>` : ''}` : ''}
     ${colorField(d.color)}
     ${listEditor('tasks','업무 체크리스트', d.tasks)}
     ${listEditor('items','준비물 / 서류', d.items)}
@@ -675,7 +694,10 @@ function saveEvent(){
     for (let i = 0; i < n; i++){
       let dt;
       if (d.repeat === 'weekly') dt = addDays(start, 7*i);
-      else if (d.repeat === 'monthly'){
+      else if (d.repeat === 'monthly' && d.monthMode === 'weekday'){
+        let occ = weekOfMonth(start); if (occ >= 5) occ = 'last';      // 다섯째 주로 시작하면 매달 마지막 주
+        dt = nthWeekdayDate(start.getFullYear(), start.getMonth()+i, start.getDay(), occ);
+      } else if (d.repeat === 'monthly'){
         const last = new Date(start.getFullYear(), start.getMonth()+i+1, 0).getDate();
         dt = new Date(start.getFullYear(), start.getMonth()+i, Math.min(start.getDate(), last));
       } else dt = start;
@@ -683,7 +705,7 @@ function saveEvent(){
       state.events.push({ ...base, id: i ? uid() : base.id, date: ymd(dt), ...(Number.isFinite(o) ? { order:o } : { order:undefined }),
         tasks: base.tasks.map(x => ({...x, id:uid()})), items: base.items.map(x => ({...x, id:uid()})) });
     }
-    toast(n > 1 ? `일정 ${n}개를 만들었어요` : '일정을 추가했어요');
+    toast(n > 1 ? `${d.repeat==='monthly'&&d.monthMode==='weekday' ? '매월 '+nthWeekdayLabel(start)+', ' : ''}일정 ${n}개를 만들었어요` : '일정을 추가했어요');
   } else {
     const i = state.events.findIndex(e => e.id === d.id);
     if (i >= 0) state.events[i] = base; else state.events.push(base);   // 편집 중 다른 기기에서 지워졌으면 다시 살린다
@@ -977,7 +999,7 @@ function quickDraft(){
   const text = document.getElementById('quick-inp').value;
   const tplId = document.getElementById('quick-tpl').value;
   const { time, title } = parseQuick(text);
-  const d = { id:uid(), title, date:quick.date, time, memo:'', color:COLORS[0], templateId:'', done:false, tasks:[], items:[], repeat:'none', repeatCount:4 };
+  const d = { id:uid(), title, date:quick.date, time, memo:'', color:COLORS[0], templateId:'', done:false, tasks:[], items:[], repeat:'none', repeatCount:4, monthMode:'date' };
   const tp = tplById(tplId);
   if (tp) fillFromTemplate(d, tp);
   return d;
@@ -1023,7 +1045,7 @@ document.addEventListener('change', e => {
   if (t.matches('[data-tpl-select]')){
     if (t.value) applyTemplate(t.value, false); else modal.draft.templateId = '';
     renderModal();
-  } else if (t.dataset.f === 'repeat'){ renderModal(); }
+  } else if (t.dataset.f === 'repeat' || t.dataset.f === 'monthMode' || (t.dataset.f === 'date' && modal.draft.repeat === 'monthly')){ renderModal(); }
 });
 /* ---------- 키보드 단축키 ----------
    e.code(키 위치)로 판단해서 한글 입력 상태에서도 동작한다. */
