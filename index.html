@@ -125,6 +125,13 @@ svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke-l
 .seg button+button{border-left:1px solid var(--line)}
 .seg button.on{background:var(--accent);color:#fff}
 .note{font-size:12px;color:var(--muted);margin:8px 2px 0}
+kbd{display:inline-block;min-width:24px;padding:2px 7px;border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;background:var(--bg);
+  font:600 12px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;text-align:center;color:var(--text)}
+.keys{display:grid;grid-template-columns:auto 1fr;gap:9px 14px;align-items:center;font-size:14px;margin:4px 0 8px}
+.keys .k{display:flex;gap:4px;flex-wrap:wrap}
+.keys h3{grid-column:1/-1;font-size:13px;color:var(--muted);margin:12px 0 0}
+.desk-only{display:none!important}
+@media (hover:hover) and (pointer:fine){ .desk-only{display:flex!important} }
 
 /* nav + fab */
 nav.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);z-index:20;padding-bottom:var(--inset-bottom)}
@@ -167,10 +174,76 @@ textarea.inp{min-height:70px;resize:vertical}
 .toast{position:fixed;left:50%;bottom:calc(140px + var(--inset-bottom));transform:translateX(-50%);background:#222;color:#fff;padding:9px 16px;border-radius:20px;font-size:14px;z-index:60;opacity:0;transition:opacity .2s;pointer-events:none;max-width:calc(100vw - 32px)}
 .toast.show{opacity:1}
 @media (max-width:420px){ .top h1{font-size:20px} .cell{min-height:60px} .chip{font-size:9.5px} }
+
+/* ---------- 컴퓨터 화면 (가로 1024px 이상): 왼쪽 메뉴 · 가운데 달력 · 오른쪽 오늘 할 일 ---------- */
+.side,.todo{display:none}
+.side-item .lbl,.side-item kbd{pointer-events:none}
+@media (min-width:1024px){
+  :root{--sidew:232px}
+  :root.side-collapsed{--sidew:68px}
+  body{overflow:hidden}
+  .shell{display:grid;grid-template-columns:var(--sidew) minmax(0,1fr) 380px;height:100vh;transition:grid-template-columns .18s ease}
+  main{max-width:none;margin:0;height:100vh;overflow:auto;padding:24px 28px 40px}
+  nav.tabs,.fab{display:none!important}
+  .toast{bottom:32px}
+
+  .side{display:flex;flex-direction:column;gap:4px;background:var(--surface);border-right:1px solid var(--line);padding:14px 12px;overflow:auto;min-width:0}
+  .side-h{display:flex;align-items:center;gap:8px;margin-bottom:10px;min-height:34px}
+  .brand{font-weight:800;font-size:16px;letter-spacing:-.02em;white-space:nowrap}
+  .side-new{display:flex;align-items:center;justify-content:center;gap:8px;margin:2px 0 12px;width:100%;padding:9px 10px}
+  .side-new kbd{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.3);color:#fff}
+  .side-item{display:flex;align-items:center;gap:12px;width:100%;border:0;background:none;border-radius:10px;padding:9px 10px;cursor:pointer;color:var(--muted);text-align:left;font-size:14px;white-space:nowrap}
+  .side-item:hover{background:var(--surface2);color:var(--text)}
+  .side-item.on{background:var(--accent-weak);color:var(--accent);font-weight:700}
+  .side-item svg{flex:none}
+  .side-item .lbl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .side-item kbd{font-size:11px;min-width:20px;padding:1px 5px;opacity:.7}
+  .side-sec{font-size:12px;font-weight:700;color:var(--muted);margin:16px 10px 4px;white-space:nowrap}
+  .side-item .dot{width:10px;height:10px;margin:0 5px}
+  .side-foot{margin-top:auto;padding-top:12px;display:flex;flex-direction:column;gap:4px}
+  :root.side-collapsed .side{padding:14px 10px}
+  :root.side-collapsed .side .lbl,:root.side-collapsed .side kbd,:root.side-collapsed .brand,:root.side-collapsed .side-sec,:root.side-collapsed .side-tpl{display:none}
+  :root.side-collapsed .side-item,:root.side-collapsed .side-new{justify-content:center;padding:9px 0}
+  :root.side-collapsed .side-h{justify-content:center}
+
+  .todo{display:flex;flex-direction:column;background:var(--surface);border-left:1px solid var(--line);height:100vh;overflow:auto;padding:22px 18px 32px}
+  .todo h2{font-size:20px;margin:2px 0 0;letter-spacing:-.02em}
+  .todo .card{box-shadow:none}
+  .todo .overall{box-shadow:none;background:var(--bg)}
+  .todo-hint{font-size:12px;color:var(--muted);margin:-2px 0 8px}
+
+  .cell{min-height:calc((100vh - 260px) / 6);padding:5px 4px}
+  .cell .n{font-size:13px;width:24px;height:24px}
+  .chip{font-size:12px;line-height:18px;padding:0 5px}
+  .mgrid{gap:4px;padding:10px}
+  .top h1{font-size:26px}
+}
+/* 우선순위 바꾸기 (오른쪽 오늘 할 일) */
+.handle{flex:none;width:18px;align-self:stretch;display:grid;place-items:center;color:var(--muted);cursor:grab;opacity:.55}
+.handle svg{width:16px;height:16px}
+.card:hover .handle{opacity:1}
+.ord{display:flex;flex-direction:column;flex:none}
+.ord .icon-btn{width:28px;height:20px}
+.ord svg{width:16px;height:16px}
+.card.dragging{opacity:.4}
+.card.drop-before{box-shadow:0 -3px 0 0 var(--accent)}
+.card.drop-after{box-shadow:0 3px 0 0 var(--accent)}
+.quick{position:fixed;z-index:45;width:320px;max-width:calc(100vw - 16px);background:var(--surface);border:1px solid var(--line);border-radius:14px;
+  box-shadow:0 10px 30px rgba(0,0,0,.18);padding:10px 12px 12px}
+.quick-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;font-size:14px}
+.quick-h .icon-btn{width:28px;height:28px}
+.quick-f{display:flex;gap:6px;margin-top:8px}
+.quick-f select{flex:1;min-width:0;padding:5px 8px;font-size:13px}
+.chip[data-ev]{cursor:pointer}
+.rank{flex:none;width:20px;text-align:center;font-size:12px;font-weight:700;color:var(--muted)}
 </style>
 </head>
 <body>
-<main id="app"></main>
+<div class="shell">
+  <aside class="side" id="side" aria-label="메뉴"></aside>
+  <main id="app"></main>
+  <aside class="todo" id="todo" aria-label="오늘 할 일"></aside>
+</div>
 <button class="fab" id="fab" aria-label="일정 추가"></button>
 <nav class="tabs"><div class="inner" id="tabs"></div></nav>
 <div id="sheet-root"></div>
@@ -207,6 +280,8 @@ const ICON = {
   up:'<svg viewBox="0 0 24 24"><path d="m6 15 6-6 6 6"/></svg>',
   left:'<svg viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg>',
   right:'<svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>',
+  grip:'<svg viewBox="0 0 24 24"><circle cx="9" cy="6" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="18" r="1"/></svg>',
+  menu:'<svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>',
   edit:'<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4z"/></svg>',
 };
 
@@ -232,7 +307,8 @@ function normalize(s){
     events: (Array.isArray(s.events) ? s.events : []).filter(e => e && e.date).map(e => ({
       id:e.id||uid(), title:String(e.title||''), date:e.date, time:e.time||'', memo:e.memo||'',
       color:e.color||COLORS[0], templateId:e.templateId||'', done:!!e.done, updatedAt:+e.updatedAt||0,
-      tasks:(e.tasks||[]).map(item), items:(e.items||[]).map(item)
+      tasks:(e.tasks||[]).map(item), items:(e.items||[]).map(item),
+      ...(Number.isFinite(e.order) ? { order:e.order } : {})
     })),
     templates: (Array.isArray(s.templates) ? s.templates : d.templates).map(t => ({
       id:t.id||uid(), name:String(t.name||''), color:t.color||COLORS[0], time:t.time||'', memo:t.memo||'',
@@ -270,7 +346,7 @@ let state = load();
 snapshot();
 
 const ui = {
-  view:'today',               // 열면 항상 오늘 화면부터
+  view: matchMedia('(min-width:1024px)').matches ? 'month' : 'today',   // 폰은 오늘 화면, 컴퓨터는 큰 달력(+오른쪽 오늘 할 일)
   weekAnchor: todayStr(),
   monthAnchor: todayStr().slice(0,7),
   selDate: todayStr(),
@@ -279,7 +355,22 @@ const ui = {
 let modal = null;             // { type:'event'|'template', isNew, draft }
 
 const tplById = id => state.templates.find(t => t.id === id);
-const cmpEv = (a,b) => a.date.localeCompare(b.date) || (a.time||'').localeCompare(b.time||'') || a.title.localeCompare(b.title);
+const ordOf = e => Number.isFinite(e.order) ? e.order : 1e9;      // 직접 정한 우선순위가 먼저, 없으면 시간순
+const cmpEv = (a,b) => a.date.localeCompare(b.date) || ordOf(a) - ordOf(b) || (a.time||'').localeCompare(b.time||'') || a.title.localeCompare(b.title);
+function nextOrder(date, exceptId){                                    // 그날 순서를 정해 둔 상태면 맨 뒤 번호
+  const os = state.events.filter(e => e.date === date && e.id !== exceptId && Number.isFinite(e.order)).map(e => e.order);
+  return os.length ? Math.max(...os) + 1 : undefined;
+}
+function reorderDay(date, id, to){
+  const list = eventsOn(date);
+  const from = list.findIndex(e => e.id === id);
+  if (from < 0) return;
+  to = Math.max(0, Math.min(list.length - 1, to));
+  if (from === to) return;
+  const [x] = list.splice(from, 1); list.splice(to, 0, x);
+  list.forEach((e, i) => { e.order = i + 1; });
+  save(); render();
+}
 const eventsOn = date => state.events.filter(e => e.date === date).sort(cmpEv);
 function progress(ev){
   const all = [...ev.tasks, ...ev.items];
@@ -297,14 +388,17 @@ function card(ev, opt = {}){
   if (opt.showDate) meta.push(fmtShort(ev.date));
   meta.push(ev.time || '종일');
   if (p.total) meta.push(`체크 ${p.done}/${p.total}`);
-  return `<article class="card ${ev.done?'done':''}" style="--c:${esc(ev.color)}">
+  const rk = opt.reorder;
+  return `<article class="card ${ev.done?'done':''}" style="--c:${esc(ev.color)}" ${rk ? `draggable="true" data-drag="${ev.id}"` : ''}>
     <div class="card-row">
+      ${rk ? `<span class="handle" title="끌어서 순서 바꾸기">${ICON.grip}</span><span class="rank">${rk}</span>` : ''}
       <button class="check ${ev.done?'on':''}" data-act="toggle-ev" data-id="${ev.id}" aria-label="${ev.done?'완료 취소':'완료 처리'}">${ICON.check}</button>
       <button class="card-main" data-act="edit-ev" data-id="${ev.id}">
         <span class="card-title">${esc(ev.title) || '(제목 없음)'}</span>
         <span class="card-meta">${esc(meta.join(' · '))}${tpl ? ` <span class="tag">${esc(tpl.name)}</span>` : ''}</span>
         ${p.total ? `<span class="bar"><i style="width:${p.pct}%"></i></span>` : ''}
       </button>
+      ${rk ? `<span class="ord"><button class="icon-btn" data-act="move" data-id="${ev.id}" data-dir="-1" aria-label="우선순위 올리기" title="위로">${ICON.up}</button><button class="icon-btn" data-act="move" data-id="${ev.id}" data-dir="1" aria-label="우선순위 내리기" title="아래로">${ICON.down}</button></span>` : ''}
       ${(p.total || ev.memo) ? `<button class="icon-btn" data-act="expand" data-id="${ev.id}" aria-label="체크리스트 ${open?'접기':'펼치기'}">${open?ICON.up:ICON.down}</button>` : ''}
     </div>
     ${open ? `<div class="sub">${sublist(ev,'tasks','업무 체크리스트')}${sublist(ev,'items','준비물')}${ev.memo?`<div class="memo">${esc(ev.memo)}</div>`:''}</div>` : ''}
@@ -383,9 +477,10 @@ function viewMonth(){
   let grid = '';
   for (let i = 0; i < cells; i++){
     const d = addDays(start, i), ds = ymd(d), evs = eventsOn(ds);
-    const chips = evs.slice(0,3).map(e => `<i class="chip ${e.done?'done':''}" style="--c:${esc(e.color)}">${esc(e.title)}</i>`).join('');
+    const maxChips = isDesk() ? 4 : 3;
+    const chips = evs.slice(0,maxChips).map(e => `<i class="chip ${e.done?'done':''}" style="--c:${esc(e.color)}" data-ev="${e.id}" title="${esc(e.title)} · 더블클릭해서 수정">${isDesk() && e.time ? e.time + ' ' : ''}${esc(e.title)}</i>`).join('');
     grid += `<button class="cell ${d.getMonth()!==m-1?'other':''} ${ds===t?'today':''} ${ds===ui.selDate?'sel':''}" data-act="sel-date" data-date="${ds}" aria-label="${fmtLong(ds)} 일정 ${evs.length}개">
-      <span class="n ${dowClass(d)}">${d.getDate()}</span>${chips}${evs.length>3?`<i class="more">+${evs.length-3}</i>`:''}</button>`;
+      <span class="n ${dowClass(d)}">${d.getDate()}</span>${chips}${evs.length>maxChips?`<i class="more">+${evs.length-maxChips}</i>`:''}</button>`;
   }
   const sel = eventsOn(ui.selDate);
   const monthEvs = state.events.filter(e => e.date.startsWith(ui.monthAnchor));
@@ -420,6 +515,7 @@ function viewSettings(){
   <div class="panel">
     <div class="prow"><div class="grow t">한 주의 시작</div>
       <div class="seg"><button class="${s.weekStart===1?'on':''}" data-act="set-week" data-v="1">월요일</button><button class="${s.weekStart===0?'on':''}" data-act="set-week" data-v="0">일요일</button></div></div>
+    <div class="prow desk-only"><div class="grow"><div class="t">키보드 단축키</div><div class="d">아무 화면에서나 <kbd>?</kbd> 를 누르면 볼 수 있어요</div></div><button class="btn sm" data-act="help">보기</button></div>
     <div class="prow"><div class="grow t">테마</div>
       <div class="seg">${[['system','시스템'],['light','라이트'],['dark','다크']].map(([v,l])=>`<button class="${s.theme===v?'on':''}" data-act="set-theme" data-v="${v}">${l}</button>`).join('')}</div></div>
   </div>
@@ -464,6 +560,10 @@ function applyTemplate(tplId, silent){
   if (!tp) return;
   const hasLists = d.tasks.some(x=>x.text.trim()) || d.items.some(x=>x.text.trim());
   if (hasLists && !silent && !confirm('지금 체크리스트를 템플릿 내용으로 바꿀까요?')) return;
+  fillFromTemplate(d, tp);
+}
+function fillFromTemplate(d, tp){
+  d.templateId = tp.id;
   if (!d.title.trim()) d.title = tp.name;
   if (!d.time && tp.time) d.time = tp.time;
   if (!d.memo && tp.memo) d.memo = tp.memo;
@@ -513,6 +613,25 @@ function renderModal(){
       <button class="btn" data-act="close">취소</button>
       <button class="btn primary" data-act="save-ev">저장</button>
     </div>`;
+  } else if (modal.type === 'help'){
+    const row = (keys, label) => `<div class="k">${keys.map(k => `<kbd>${k}</kbd>`).join('')}</div><div>${label}</div>`;
+    const mod = /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘' : 'Ctrl';
+    body = `
+    <div class="sheet-h"><h2>키보드 단축키</h2><button class="icon-btn" data-act="close" aria-label="닫기">${ICON.x}</button></div>
+    <div class="keys">
+      <h3>이동</h3>
+      ${row(['1'], '월별')}${row(['2'], '주간')}${row(['3'], '오늘 할 일')}${row(['4'], '설정')}
+      ${row(['M'], '월별 (한 번 더 누르면 이번 달)')}${row(['W'], '주간 (한 번 더 누르면 이번 주)')}${row(['T'], '오늘 할 일')}
+      ${row(['←','→'], '이전 / 다음 주·달')}${row(['['], '왼쪽 메뉴 접기 / 펼치기 (컴퓨터)')}
+      <h3>일정</h3>
+      ${row(['N'], '새 일정 (보고 있는 날짜에)')}
+      ${row(['P'], '템플릿 골라서 새 일정')}
+      ${row([mod,'Enter'], '편집 창에서 저장')}${row([mod,'S'], '편집 창에서 저장')}
+      ${row(['Esc'], '편집 창 닫기')}${row(['더블클릭'], '달력 날짜 → 빠른 추가 (예: 14:00 미팅)')}${row(['더블클릭'], '달력 속 일정 → 수정')}
+      <h3>기타</h3>
+      ${row(['R'], '지금 동기화')}${row(['?'], '이 도움말')}
+    </div>
+    <p class="note">한글 입력 상태에서도 그대로 눌러도 돼요. 입력 칸에 글을 쓰는 중에는 단축키가 동작하지 않아요.</p>`;
   } else {
     body = `
     <div class="sheet-h"><h2>${modal.isNew?'새 템플릿':'템플릿 편집'}</h2><button class="icon-btn" data-act="close" aria-label="닫기">${ICON.x}</button></div>
@@ -546,6 +665,9 @@ function saveEvent(){
   if (!d.date){ toast('날짜를 선택해 주세요'); return; }
   const base = { id:d.id, title:d.title.trim(), date:d.date, time:d.time, memo:d.memo, color:d.color, templateId:d.templateId, done:d.done,
                  tasks:cleanList(d.tasks), items:cleanList(d.items) };
+  const prev = state.events.find(e => e.id === d.id);
+  const ord = prev && prev.date === d.date ? prev.order : nextOrder(d.date, d.id);   // 날짜를 옮기면 그날 맨 뒤로
+  if (Number.isFinite(ord)) base.order = ord;
   if (modal.isNew){
     const n = d.repeat === 'none' ? 1 : Math.max(2, Math.min(52, parseInt(d.repeatCount,10) || 2));
     const start = parse(d.date);
@@ -556,7 +678,8 @@ function saveEvent(){
         const last = new Date(start.getFullYear(), start.getMonth()+i+1, 0).getDate();
         dt = new Date(start.getFullYear(), start.getMonth()+i, Math.min(start.getDate(), last));
       } else dt = start;
-      state.events.push({ ...base, id: i ? uid() : base.id, date: ymd(dt),
+      const o = nextOrder(ymd(dt));
+      state.events.push({ ...base, id: i ? uid() : base.id, date: ymd(dt), ...(Number.isFinite(o) ? { order:o } : { order:undefined }),
         tasks: base.tasks.map(x => ({...x, id:uid()})), items: base.items.map(x => ({...x, id:uid()})) });
     }
     toast(n > 1 ? `일정 ${n}개를 만들었어요` : '일정을 추가했어요');
@@ -587,7 +710,48 @@ function render(){
   const fab = document.getElementById('fab');
   fab.style.display = ui.view === 'settings' ? 'none' : '';
   fab.innerHTML = ICON.plus;
+  document.getElementById('side').innerHTML = viewSide();
+  document.getElementById('todo').innerHTML = viewTodo();
   applyTheme();
+}
+const deskMQ = matchMedia('(min-width:1024px)');
+const isDesk = () => deskMQ.matches;
+deskMQ.addEventListener && deskMQ.addEventListener('change', () => render());
+function scrollTop(){ closeQuick(); window.scrollTo(0,0); const a = document.getElementById('app'); if (a) a.scrollTop = 0; }
+
+/* 왼쪽 메뉴 (컴퓨터) */
+let sideCollapsed = false;
+try { sideCollapsed = localStorage.getItem('workcal.side') === '1'; } catch(e){}
+function applySide(){ document.documentElement.classList.toggle('side-collapsed', sideCollapsed); }
+function toggleSide(){ sideCollapsed = !sideCollapsed; try { localStorage.setItem('workcal.side', sideCollapsed ? '1' : '0'); } catch(e){} applySide(); }
+applySide();
+function viewSide(){
+  const items = [['month','월별','1'],['week','주간','2'],['today','오늘 할 일','3'],['settings','설정','4']];
+  return `
+  <div class="side-h"><button class="icon-btn" data-act="side-toggle" title="메뉴 접기/펼치기 ( [ )" aria-label="메뉴 접기/펼치기">${ICON.menu}</button><span class="brand">업무 캘린더</span></div>
+  <button class="btn primary side-new" data-act="new-ev-here" title="새 일정 (N)">${ICON.plus}<span class="lbl">새 일정</span><kbd>N</kbd></button>
+  ${items.map(([v,l,k]) => `<button class="side-item ${ui.view===v?'on':''}" data-act="tab" data-v="${v}" title="${l} (${k})">${ICON[v]}<span class="lbl">${l}</span><kbd>${k}</kbd></button>`).join('')}
+  ${state.templates.length ? `<div class="side-sec">템플릿으로 추가</div>` + state.templates.map(t =>
+    `<button class="side-item side-tpl" style="--c:${esc(t.color)}" data-act="use-tpl" data-id="${t.id}" title="${esc(t.name)} 템플릿으로 새 일정"><span class="dot"></span><span class="lbl">${esc(t.name)}</span></button>`).join('') : ''}
+  <div class="side-foot">
+    ${syncCfg.key ? `<button class="side-item" data-act="pill" title="동기화 상태"><span class="dot" style="--c:${syncCfg.lastError ? 'var(--danger)' : syncing ? 'var(--muted)' : 'var(--ok)'}"></span><span class="lbl">${syncing ? '동기화 중…' : syncCfg.lastError ? '동기화 오류' : '동기화됨'}</span></button>` : ''}
+    <button class="side-item" data-act="help" title="키보드 단축키 (?)"><span style="width:20px;text-align:center;font-weight:700">?</span><span class="lbl">단축키</span></button>
+  </div>`;
+}
+
+/* 오른쪽 오늘 할 일 (컴퓨터) — 끌어서 놓거나 ▲▼로 우선순위 변경 */
+function viewTodo(){
+  const t = todayStr(), evs = eventsOn(t), doneN = evs.filter(e => e.done).length;
+  const overdue = state.events.filter(e => e.date < t && !e.done).sort(cmpEv);
+  const pct = evs.length ? Math.round(doneN / evs.length * 100) : 0;
+  return `
+  <div class="top" style="margin:0 0 12px"><div><div class="eyebrow">오늘 할 일 · ${doneN}/${evs.length} 완료</div><h2>${fmtLong(t)}</h2></div>
+    <button class="icon-btn" data-act="new-ev" data-date="${t}" title="오늘 일정 추가" aria-label="오늘 일정 추가">${ICON.plus}</button></div>
+  ${evs.length ? `<div class="overall" style="margin:0 0 14px"><div class="row"><span>진행률</span><span>${pct}%</span></div><span class="bar"><i style="width:${pct}%"></i></span></div>
+    ${evs.length > 1 ? '<div class="todo-hint">끌어서 놓거나 ▲▼로 우선순위를 바꿀 수 있어요</div>' : ''}
+    <div data-drop-list="${t}">${evs.map((e, i) => card(e, { reorder: i + 1 })).join('')}</div>`
+    : `<div class="empty">오늘 할 일이 없어요.<br><button class="btn primary sm" data-act="new-ev" data-date="${t}">일정 추가</button></div>`}
+  ${overdue.length ? `<div class="sec-h warn"><span>밀린 업무</span><span>${overdue.length}</span></div>${list(overdue, { showDate:true })}` : ''}`;
 }
 function applyTheme(){
   const t = state.settings.theme;
@@ -617,7 +781,17 @@ document.addEventListener('click', e => {
   const act = el.dataset.act, id = el.dataset.id;
   const ev = id && state.events.find(x => x.id === id);
   switch (act){
-    case 'tab': ui.view = el.dataset.v; window.scrollTo(0,0); render(); break;
+    case 'tab': ui.view = el.dataset.v; scrollTop(); render(); break;
+    case 'side-toggle': toggleSide(); break;
+    case 'quick-close': closeQuick(); break;
+    case 'quick-save': saveQuick(); break;
+    case 'quick-more': quickMore(); break;
+    case 'new-ev-here': openEvent(null, fabDate()); break;
+    case 'move': {
+      const evm = state.events.find(x => x.id === id); if (!evm) break;
+      const idx = eventsOn(evm.date).findIndex(x => x.id === id);
+      reorderDay(evm.date, id, idx + Number(el.dataset.dir)); break;
+    }
     case 'toggle-ev':
       if (ev){ ev.done = !ev.done; save(); render(); if (ev.done) toast('완료 처리했어요'); } break;
     case 'toggle-sub': {
@@ -634,6 +808,7 @@ document.addEventListener('click', e => {
     case 'edit-ev': openEvent(id); break;
     case 'new-ev': openEvent(null, el.dataset.date); break;
     case 'sel-date': {
+      if (ui.selDate === el.dataset.date) break;
       ui.selDate = el.dataset.date;
       if (ui.selDate.slice(0,7) !== ui.monthAnchor) ui.monthAnchor = ui.selDate.slice(0,7);
       render(); break;
@@ -653,7 +828,7 @@ document.addEventListener('click', e => {
     case 'set-theme': state.settings.theme = el.dataset.v; save(); render(); break;
     case 'new-tpl': openTemplate(null); break;
     case 'edit-tpl': openTemplate(id); break;
-    case 'use-tpl': openEvent(null, todayStr(), id); break;
+    case 'use-tpl': openEvent(null, fabDate(), id); break;
     case 'export': exportData(); break;
     case 'import': importData(); break;
     case 'clean-done': {
@@ -682,6 +857,7 @@ document.addEventListener('click', e => {
       }
       break;
     case 'pill': ui.view = 'settings'; render(); break;
+    case 'help': openHelp(); break;
 
     /* 모달 */
     case 'backdrop': if (e.target === el) closeModal(); break;
@@ -712,6 +888,116 @@ document.addEventListener('click', e => {
       break;
   }
 });
+let dragId = null;
+document.addEventListener('dragstart', e => {
+  const c = e.target.closest && e.target.closest('[data-drag]');
+  if (!c) return;
+  dragId = c.dataset.drag; c.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', dragId);
+});
+function clearDrop(){ document.querySelectorAll('.drop-before,.drop-after').forEach(x => x.classList.remove('drop-before','drop-after')); }
+document.addEventListener('dragover', e => {
+  if (!dragId) return;
+  const c = e.target.closest && e.target.closest('[data-drag]');
+  if (!c || !c.closest('[data-drop-list]')) return;
+  e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+  clearDrop();
+  if (c.dataset.drag === dragId) return;
+  const r = c.getBoundingClientRect();
+  c.classList.add(e.clientY < r.top + r.height / 2 ? 'drop-before' : 'drop-after');
+});
+document.addEventListener('drop', e => {
+  if (!dragId) return;
+  const c = e.target.closest && e.target.closest('[data-drag]');
+  const listEl = c && c.closest('[data-drop-list]');
+  if (!listEl){ return; }
+  e.preventDefault();
+  const date = listEl.dataset.dropList;
+  const list = eventsOn(date);
+  const from = list.findIndex(x => x.id === dragId);
+  let to = list.findIndex(x => x.id === c.dataset.drag);
+  const r = c.getBoundingClientRect();
+  if (e.clientY >= r.top + r.height / 2) to += 1;      // 대상 카드 아래쪽에 놓음
+  if (from < to) to -= 1;
+  const id = dragId; dragId = null; clearDrop();
+  reorderDay(date, id, to);
+});
+document.addEventListener('dragend', () => { dragId = null; clearDrop(); document.querySelectorAll('.dragging').forEach(x => x.classList.remove('dragging')); });
+document.addEventListener('dblclick', e => {
+  if (!e.target.closest) return;
+  const chip = e.target.closest('[data-ev]');
+  if (chip){ e.preventDefault(); closeQuick(); openEvent(chip.dataset.ev); return; }
+  const c = e.target.closest('.cell[data-date]');
+  if (c){ e.preventDefault(); openQuick(c.dataset.date, c); }
+});
+
+/* ---------- 빠른 추가 (날짜 더블클릭) ----------
+   "14:00 미팅", "오후 2시 회의", "9시 반 보고" 처럼 앞에 시간을 쓰면 시간도 들어간다. */
+function parseQuick(text){
+  let t = text.trim(), time = '';
+  const m = t.match(/^(오전|오후)?\s*(\d{1,2})(?::(\d{2})|시(?:\s*(\d{1,2})\s*분|\s*(반))?)\s*/);
+  if (m){
+    let h = +m[2];
+    const mi = m[3] ? +m[3] : m[4] ? +m[4] : m[5] ? 30 : 0;
+    if (m[1] === '오후' && h < 12) h += 12;
+    if (m[1] === '오전' && h === 12) h = 0;
+    if (h < 24 && mi < 60){ time = pad(h) + ':' + pad(mi); t = t.slice(m[0].length).trim(); }
+  }
+  return { time, title: t };
+}
+let quick = null;
+function closeQuick(){ const q = document.getElementById('quick'); if (q) q.remove(); quick = null; }
+function openQuick(date, anchor){
+  closeQuick();
+  quick = { date };
+  const box = document.createElement('div');
+  box.className = 'quick'; box.id = 'quick';
+  box.setAttribute('role', 'dialog'); box.setAttribute('aria-label', fmtLong(date) + ' 빠른 추가');
+  box.innerHTML = `
+    <div class="quick-h"><b>${fmtLong(date)}</b><button class="icon-btn" data-act="quick-close" aria-label="닫기">${ICON.x}</button></div>
+    <input class="inp" id="quick-inp" placeholder="예: 14:00 거래처 미팅" autocomplete="off">
+    <div class="quick-f">
+      <select class="inp" id="quick-tpl" aria-label="템플릿"><option value="">템플릿 없음</option>${state.templates.map(t => `<option value="${t.id}">${esc(t.name)}</option>`).join('')}</select>
+      <button class="btn sm" data-act="quick-more">자세히</button>
+      <button class="btn sm primary" data-act="quick-save">추가</button>
+    </div>
+    <div class="hint">Enter 추가 · Esc 취소 · 앞에 시간을 쓰면 시간도 들어가요</div>`;
+  document.body.appendChild(box);
+  const r = anchor.getBoundingClientRect(), w = box.offsetWidth, h = box.offsetHeight;
+  const left = Math.max(8, Math.min(innerWidth - w - 8, r.left));
+  const top = r.bottom + 6 + h > innerHeight - 8 ? Math.max(8, r.top - h - 6) : r.bottom + 6;
+  box.style.left = left + 'px'; box.style.top = top + 'px';
+  document.getElementById('quick-inp').focus();
+}
+function quickDraft(){
+  const text = document.getElementById('quick-inp').value;
+  const tplId = document.getElementById('quick-tpl').value;
+  const { time, title } = parseQuick(text);
+  const d = { id:uid(), title, date:quick.date, time, memo:'', color:COLORS[0], templateId:'', done:false, tasks:[], items:[], repeat:'none', repeatCount:4 };
+  const tp = tplById(tplId);
+  if (tp) fillFromTemplate(d, tp);
+  return d;
+}
+function saveQuick(){
+  const d = quickDraft();
+  if (!d.title.trim()){ toast('제목을 입력해 주세요'); return; }
+  const ev = { id:d.id, title:d.title.trim(), date:d.date, time:d.time, memo:d.memo, color:d.color, templateId:d.templateId, done:false,
+               tasks:cleanList(d.tasks), items:cleanList(d.items) };
+  const o = nextOrder(d.date); if (Number.isFinite(o)) ev.order = o;
+  state.events.push(ev);
+  closeQuick(); save(); render();
+  toast(`${fmtShort(d.date)} ${d.time ? d.time + ' ' : ''}일정을 추가했어요`);
+}
+function quickMore(){
+  const d = quickDraft();
+  closeQuick();
+  modal = { type:'event', isNew:true, draft:d };
+  pushModalState(); renderModal();
+}
+document.addEventListener('mousedown', e => {
+  if (quick && !e.target.closest('#quick')) closeQuick();
+});
+
 function addListItem(kind, text){
   const v = (text || '').trim();
   if (!v) return;
@@ -735,10 +1021,56 @@ document.addEventListener('change', e => {
     renderModal();
   } else if (t.dataset.f === 'repeat'){ renderModal(); }
 });
+/* ---------- 키보드 단축키 ----------
+   e.code(키 위치)로 판단해서 한글 입력 상태에서도 동작한다. */
+const isTyping = el => el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName));
+function goView(v){
+  if (ui.view === v){                       // 같은 탭을 한 번 더 → 지금 날짜로
+    if (v === 'month'){ ui.monthAnchor = todayStr().slice(0,7); ui.selDate = todayStr(); }
+    if (v === 'week') ui.weekAnchor = todayStr();
+  }
+  ui.view = v; scrollTop(); render();
+}
+function openHelp(){ modal = { type:'help' }; pushModalState(); renderModal(); }
+function stepPeriod(dir){
+  if (ui.view === 'week'){ ui.weekAnchor = ymd(addDays(parse(ui.weekAnchor), 7*dir)); render(); }
+  else if (ui.view === 'month'){
+    const [y,m] = ui.monthAnchor.split('-').map(Number);
+    const d = new Date(y, m-1+dir, 1);
+    ui.monthAnchor = `${d.getFullYear()}-${pad(d.getMonth()+1)}`;
+    ui.selDate = ui.monthAnchor === todayStr().slice(0,7) ? todayStr() : ui.monthAnchor + '-01';
+    render();
+  }
+}
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && modal){ closeModal(); return; }
   const t = e.target;
-  if (e.key === 'Enter' && !e.isComposing && t.dataset && t.dataset.leNew){ e.preventDefault(); addListItem(t.dataset.leNew, t.value); }
+  if (quick){
+    if (e.key === 'Escape'){ e.preventDefault(); closeQuick(); return; }
+    if (e.key === 'Enter' && !e.isComposing && t.id === 'quick-inp'){ e.preventDefault(); saveQuick(); return; }
+  }
+  if (e.key === 'Escape' && modal){ closeModal(); return; }
+  if (e.key === 'Enter' && !e.isComposing && t.dataset && t.dataset.leNew){ e.preventDefault(); addListItem(t.dataset.leNew, t.value); return; }
+  const mod = e.ctrlKey || e.metaKey;
+  if (modal){
+    if (mod && (e.key === 'Enter' || e.code === 'KeyS')){
+      e.preventDefault();
+      if (modal.type === 'event') saveEvent(); else if (modal.type === 'template') saveTemplate();
+    }
+    return;
+  }
+  if (mod || e.altKey || e.isComposing || isTyping(t)) return;
+  if (e.code === 'Slash' && e.shiftKey){ e.preventDefault(); openHelp(); return; }
+  if (e.shiftKey) return;
+  const act = {
+    Digit1:() => goView('month'), Digit2:() => goView('week'), Digit3:() => goView('today'), Digit4:() => goView('settings'),
+    KeyM:() => goView('month'), KeyW:() => goView('week'), KeyT:() => goView('today'),
+    ArrowLeft:() => stepPeriod(-1), ArrowRight:() => stepPeriod(1),
+    BracketLeft:() => toggleSide(),
+    KeyN:() => openEvent(null, fabDate()),
+    KeyP:() => { openEvent(null, fabDate()); setTimeout(() => { const sel = document.querySelector('[data-tpl-select]'); if (sel){ sel.focus(); if (sel.showPicker) try { sel.showPicker(); } catch(err){} } }, 40); },
+    KeyR:() => { if (syncCfg.key) sync(true); else toast('동기화가 꺼져 있어요'); },
+  }[e.code];
+  if (act){ e.preventDefault(); act(); }
 });
 
 /* ---------- 백업 ---------- */
@@ -971,7 +1303,7 @@ const CapApp = window.Capacitor && window.Capacitor.isNativePlatform && window.C
 if (CapApp){
   CapApp.addListener('backButton', () => {
     if (modal){ closeModal(); return; }
-    if (ui.view !== 'today'){ ui.view = 'today'; window.scrollTo(0,0); render(); return; }
+    if (ui.view !== 'today'){ ui.view = 'today'; scrollTop(); render(); return; }
     CapApp.exitApp();
   });
 }
