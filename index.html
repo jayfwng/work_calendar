@@ -169,6 +169,9 @@ textarea.inp{min-height:70px;resize:vertical}
 .wdsel button.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
 .wdsel button.sun.on{background:var(--danger);border-color:var(--danger)}
 .wdsel button.sat.on{background:var(--sat);border-color:var(--sat)}
+.del-opts{display:flex;flex-direction:column;gap:8px;margin:4px 0}
+.del-opt{justify-content:space-between;padding:12px 14px;font-size:15px}
+.del-opt[data-scope="all"]{color:var(--danger)}
 
 .pill{flex:none;font-size:12px;padding:4px 10px;border-radius:20px;background:var(--surface2);color:var(--muted);border:0;cursor:pointer}
 .pill.ok{color:var(--ok)}
@@ -317,7 +320,8 @@ function normalize(s){
       id:e.id||uid(), title:String(e.title||''), date:e.date, time:e.time||'', memo:e.memo||'',
       color:e.color||COLORS[0], templateId:e.templateId||'', done:!!e.done, updatedAt:+e.updatedAt||0,
       tasks:(e.tasks||[]).map(item), items:(e.items||[]).map(item),
-      ...(Number.isFinite(e.order) ? { order:e.order } : {})
+      ...(Number.isFinite(e.order) ? { order:e.order } : {}),
+      ...(e.seriesId ? { seriesId:String(e.seriesId) } : {})
     })),
     templates: (Array.isArray(s.templates) ? s.templates : d.templates).map(t => ({
       id:t.id||uid(), name:String(t.name||''), color:t.color||COLORS[0], time:t.time||'', memo:t.memo||'',
@@ -381,7 +385,8 @@ function nthWeekdayDate(year, month, weekday, nth){                  // month 0~
 }
 const orderedDows = () => Array.from({length:7}, (_, i) => (state.settings.weekStart + i) % 7);   // 설정의 주 시작부터
 const weekdaysOf = d => (d.weekdays && d.weekdays.length) ? d.weekdays : [parse(d.date).getDay()]; // 기본은 시작일 요일
-const ordOf = e => Number.isFinite(e.order) ? e.order : 1e9;      // 직접 정한 우선순위가 먼저, 없으면 시간순
+const ordOf = e => Number.isFinite(e.order) ? e.order : 1e9;
+const seriesMembers = ev => ev && ev.seriesId ? state.events.filter(e => e.seriesId === ev.seriesId) : (ev ? [ev] : []);      // 직접 정한 우선순위가 먼저, 없으면 시간순
 const cmpEv = (a,b) => a.date.localeCompare(b.date) || ordOf(a) - ordOf(b) || (a.time||'').localeCompare(b.time||'') || a.title.localeCompare(b.title);
 function nextOrder(date, exceptId){                                    // 그날 순서를 정해 둔 상태면 맨 뒤 번호
   const os = state.events.filter(e => e.date === date && e.id !== exceptId && Number.isFinite(e.order)).map(e => e.order);
@@ -649,6 +654,21 @@ function renderModal(){
       <button class="btn" data-act="close">취소</button>
       <button class="btn primary" data-act="save-ev">저장</button>
     </div>`;
+  } else if (modal.type === 'delete'){
+    const ev = modal.ev, fam = seriesMembers(ev).slice().sort(cmpEv);
+    const after = fam.filter(e => e.date >= ev.date).length;
+    const before = fam.filter(e => e.date <= ev.date).length;
+    const btn = (scope, label, n) => `<button class="btn del-opt" data-act="del-scope" data-scope="${scope}"><span>${label}</span><span class="tag">${n}개</span></button>`;
+    body = `
+    <div class="sheet-h"><h2>반복 일정 삭제</h2><button class="icon-btn" data-act="close" aria-label="닫기">${ICON.x}</button></div>
+    <p class="hint" style="margin:2px 0 10px">“${esc(ev.title)}” — ${fmtLong(ev.date)} 기준. 어디까지 삭제할까요?</p>
+    <div class="del-opts">
+      ${btn('this', '이 일정만', 1)}
+      ${btn('after', '이 일정과 이후 전체', after)}
+      ${btn('before', '이 일정과 이전 전체', before)}
+      ${btn('all', '전체 (반복 전부)', fam.length)}
+    </div>
+    <div class="actions"><span class="spacer"></span><button class="btn" data-act="close">취소</button></div>`;
   } else if (modal.type === 'help'){
     const row = (keys, label) => `<div class="k">${keys.map(k => `<kbd>${k}</kbd>`).join('')}</div><div>${label}</div>`;
     const mod = /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘' : 'Ctrl';
@@ -725,9 +745,11 @@ function saveEvent(){
       }
     } else dates.push(start);
     dates.sort((a,b) => a - b);
+    const seriesId = dates.length > 1 ? uid() : null;                  // 2개 이상이면 반복 묶음으로 연결
     dates.forEach((dt, i) => {
       const o = nextOrder(ymd(dt));
       state.events.push({ ...base, id: i ? uid() : base.id, date: ymd(dt), ...(Number.isFinite(o) ? { order:o } : { order:undefined }),
+        ...(seriesId ? { seriesId } : {}),
         tasks: base.tasks.map(x => ({...x, id:uid()})), items: base.items.map(x => ({...x, id:uid()})) });
     });
     const wdLabel = d.repeat==='weekly' ? '매주 '+[...new Set(weekdaysOf(d))].sort((a,b)=>a-b).map(x=>DOW[x]).join('·')+', ' : d.repeat==='monthly'&&d.monthMode==='weekday' ? '매월 '+nthWeekdayLabel(start)+', ' : '';
@@ -933,9 +955,24 @@ document.addEventListener('click', e => {
     }
     case 'le-del': modal.draft[el.dataset.kind].splice(Number(el.dataset.i), 1); renderModal(); break;
     case 'save-ev': saveEvent(); break;
-    case 'del-ev':
-      if (confirm('이 일정을 삭제할까요?')){ state.events = state.events.filter(x => x.id !== modal.draft.id); save(); closeModal(); render(); toast('삭제했어요'); }
+    case 'del-ev': {
+      const cur = state.events.find(x => x.id === modal.draft.id);
+      const fam = seriesMembers(cur);
+      if (fam.length > 1){ modal = { type:'delete', ev: cur }; renderModal(); }
+      else if (confirm('이 일정을 삭제할까요?')){ state.events = state.events.filter(x => x.id !== modal.draft.id); save(); closeModal(); render(); toast('삭제했어요'); }
       break;
+    }
+    case 'del-scope': {
+      const ev = modal.ev, fam = seriesMembers(ev), scope = el.dataset.scope;
+      let rm;
+      if (scope === 'this') rm = new Set([ev.id]);
+      else if (scope === 'after') rm = new Set(fam.filter(e => e.date >= ev.date).map(e => e.id));
+      else if (scope === 'before') rm = new Set(fam.filter(e => e.date <= ev.date).map(e => e.id));
+      else rm = new Set(fam.map(e => e.id));                           // all
+      state.events = state.events.filter(x => !rm.has(x.id));
+      save(); closeModal(); render(); toast(`${rm.size}개 삭제했어요`);
+      break;
+    }
     case 'save-as-tpl': {
       const d = modal.draft;
       const name = prompt('템플릿 이름', d.title.trim() || '새 템플릿');
