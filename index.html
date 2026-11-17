@@ -164,6 +164,11 @@ textarea.inp{min-height:70px;resize:vertical}
 .actions{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap}
 .actions .spacer{flex:1}
 .hint{font-size:12px;color:var(--muted);margin-top:4px}
+.wdsel{display:flex;gap:5px;flex-wrap:wrap}
+.wdsel button{flex:1;min-width:38px;height:38px;border:1px solid var(--line);background:var(--bg);border-radius:9px;cursor:pointer;font-size:14px;color:var(--muted)}
+.wdsel button.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+.wdsel button.sun.on{background:var(--danger);border-color:var(--danger)}
+.wdsel button.sat.on{background:var(--sat);border-color:var(--sat)}
 
 .pill{flex:none;font-size:12px;padding:4px 10px;border-radius:20px;background:var(--surface2);color:var(--muted);border:0;cursor:pointer}
 .pill.ok{color:var(--ok)}
@@ -212,10 +217,14 @@ textarea.inp{min-height:70px;resize:vertical}
   .todo .overall{box-shadow:none;background:var(--bg)}
   .todo-hint{font-size:12px;color:var(--muted);margin:-2px 0 8px}
 
-  .cell{min-height:calc((100vh - 260px) / 6);padding:5px 4px}
-  .cell .n{font-size:13px;width:24px;height:24px}
-  .chip{font-size:12px;line-height:18px;padding:0 5px}
-  .mgrid{gap:4px;padding:10px}
+  main:has(.mgrid){display:flex;flex-direction:column}       /* 월별: 달력이 남는 높이를 채움 */
+  main:has(.mgrid) .top{flex:none}
+  .month-foot{display:none}                                  /* 오른쪽에 오늘 할 일이 있으니 하단 목록 제거 */
+  .mgrid{flex:1;min-height:0;gap:4px;padding:10px;grid-auto-rows:minmax(0,1fr)}
+  .cell{min-height:0;overflow:hidden;padding:6px 5px;gap:3px}
+  .cell .n{font-size:14px;width:26px;height:26px}
+  .chip{font-size:12.5px;line-height:19px;padding:1px 6px;border-radius:4px}
+  .cell .more{font-size:11px}
   .top h1{font-size:26px}
 }
 /* 우선순위 바꾸기 (오른쪽 오늘 할 일) */
@@ -370,6 +379,8 @@ function nthWeekdayDate(year, month, weekday, nth){                  // month 0~
   const firstDow = new Date(year, month, 1).getDay();
   return new Date(year, month, 1 + ((weekday - firstDow + 7) % 7) + (nth-1)*7);
 }
+const orderedDows = () => Array.from({length:7}, (_, i) => (state.settings.weekStart + i) % 7);   // 설정의 주 시작부터
+const weekdaysOf = d => (d.weekdays && d.weekdays.length) ? d.weekdays : [parse(d.date).getDay()]; // 기본은 시작일 요일
 const ordOf = e => Number.isFinite(e.order) ? e.order : 1e9;      // 직접 정한 우선순위가 먼저, 없으면 시간순
 const cmpEv = (a,b) => a.date.localeCompare(b.date) || ordOf(a) - ordOf(b) || (a.time||'').localeCompare(b.time||'') || a.title.localeCompare(b.title);
 function nextOrder(date, exceptId){                                    // 그날 순서를 정해 둔 상태면 맨 뒤 번호
@@ -505,8 +516,10 @@ function viewMonth(){
     <button class="btn sm" data-act="month-today">오늘</button>
     <button class="icon-btn" data-act="month-next" aria-label="다음 달">${ICON.right}</button></div></header>
   <div class="mgrid">${head}${grid}</div>
-  <div class="sec-h"><span>${fmtLong(ui.selDate)}</span><button class="btn sm" data-act="new-ev" data-date="${ui.selDate}">+ 일정</button></div>
-  ${sel.length ? list(sel) : '<div class="empty">이 날은 일정이 없어요.</div>'}`;
+  <div class="month-foot">
+    <div class="sec-h"><span>${fmtLong(ui.selDate)}</span><button class="btn sm" data-act="new-ev" data-date="${ui.selDate}">+ 일정</button></div>
+    ${sel.length ? list(sel) : '<div class="empty">이 날은 일정이 없어요.</div>'}
+  </div>`;
 }
 
 /* ---------- 화면: 설정 ---------- */
@@ -616,8 +629,11 @@ function renderModal(){
     ${modal.isNew ? `<div class="two">
       <div class="field"><div class="label">반복</div><select class="inp" data-f="repeat">
         ${[['none','반복 안 함'],['weekly','매주'],['monthly','매월']].map(([v,l])=>`<option value="${v}" ${d.repeat===v?'selected':''}>${l}</option>`).join('')}</select></div>
-      <div class="field"><div class="label">반복 횟수</div><input class="inp" type="number" min="2" max="52" data-f="repeatCount" value="${d.repeatCount}" ${d.repeat==='none'?'disabled':''}></div>
+      <div class="field"><div class="label">${d.repeat==='weekly'?'몇 주 동안':'반복 횟수'}</div><input class="inp" type="number" min="1" max="52" data-f="repeatCount" value="${d.repeatCount}" ${d.repeat==='none'?'disabled':''}></div>
     </div>
+    ${d.repeat === 'weekly' && d.date ? (() => { const days = weekdaysOf(d); return `<div class="field"><div class="label">반복할 요일</div><div class="wdsel">${
+      orderedDows().map(dw => `<button type="button" class="${dw===0?'sun':dw===6?'sat':''} ${days.includes(dw)?'on':''}" data-act="wd-toggle" data-v="${dw}" aria-pressed="${days.includes(dw)}">${DOW[dw]}</button>`).join('')
+    }</div><div class="hint">예: 매주 월·수·금이면 세 요일을 모두 켜세요.</div></div>`; })() : ''}
     ${d.repeat === 'monthly' && d.date ? `<div class="field"><div class="label">매월 기준</div><select class="inp" data-f="monthMode">
         <option value="date" ${d.monthMode!=='weekday'?'selected':''}>같은 날짜 (매월 ${parse(d.date).getDate()}일)</option>
         <option value="weekday" ${d.monthMode==='weekday'?'selected':''}>같은 요일 (매월 ${nthWeekdayLabel(parse(d.date))})</option>
@@ -689,23 +705,33 @@ function saveEvent(){
   const ord = prev && prev.date === d.date ? prev.order : nextOrder(d.date, d.id);   // 날짜를 옮기면 그날 맨 뒤로
   if (Number.isFinite(ord)) base.order = ord;
   if (modal.isNew){
-    const n = d.repeat === 'none' ? 1 : Math.max(2, Math.min(52, parseInt(d.repeatCount,10) || 2));
+    const n = d.repeat === 'none' ? 1 : Math.max(1, Math.min(52, parseInt(d.repeatCount,10) || 1));
     const start = parse(d.date);
-    for (let i = 0; i < n; i++){
-      let dt;
-      if (d.repeat === 'weekly') dt = addDays(start, 7*i);
-      else if (d.repeat === 'monthly' && d.monthMode === 'weekday'){
-        let occ = weekOfMonth(start); if (occ >= 5) occ = 'last';      // 다섯째 주로 시작하면 매달 마지막 주
-        dt = nthWeekdayDate(start.getFullYear(), start.getMonth()+i, start.getDay(), occ);
-      } else if (d.repeat === 'monthly'){
+    const dates = [];
+    if (d.repeat === 'weekly'){
+      const days = [...new Set(weekdaysOf(d))].sort((a,b) => a - b);
+      const wkBase = weekStartOf(start);                               // 시작일이 속한 주의 시작
+      for (let w = 0; w < n; w++) for (const dw of days){
+        const dt = addDays(wkBase, w*7 + ((dw - state.settings.weekStart + 7) % 7));
+        if (dt >= start) dates.push(dt);                               // 시작일 이전 요일은 제외
+      }
+    } else if (d.repeat === 'monthly' && d.monthMode === 'weekday'){
+      let occ = weekOfMonth(start); if (occ >= 5) occ = 'last';        // 다섯째 주로 시작하면 매달 마지막 주
+      for (let i = 0; i < n; i++) dates.push(nthWeekdayDate(start.getFullYear(), start.getMonth()+i, start.getDay(), occ));
+    } else if (d.repeat === 'monthly'){
+      for (let i = 0; i < n; i++){
         const last = new Date(start.getFullYear(), start.getMonth()+i+1, 0).getDate();
-        dt = new Date(start.getFullYear(), start.getMonth()+i, Math.min(start.getDate(), last));
-      } else dt = start;
+        dates.push(new Date(start.getFullYear(), start.getMonth()+i, Math.min(start.getDate(), last)));
+      }
+    } else dates.push(start);
+    dates.sort((a,b) => a - b);
+    dates.forEach((dt, i) => {
       const o = nextOrder(ymd(dt));
       state.events.push({ ...base, id: i ? uid() : base.id, date: ymd(dt), ...(Number.isFinite(o) ? { order:o } : { order:undefined }),
         tasks: base.tasks.map(x => ({...x, id:uid()})), items: base.items.map(x => ({...x, id:uid()})) });
-    }
-    toast(n > 1 ? `${d.repeat==='monthly'&&d.monthMode==='weekday' ? '매월 '+nthWeekdayLabel(start)+', ' : ''}일정 ${n}개를 만들었어요` : '일정을 추가했어요');
+    });
+    const wdLabel = d.repeat==='weekly' ? '매주 '+[...new Set(weekdaysOf(d))].sort((a,b)=>a-b).map(x=>DOW[x]).join('·')+', ' : d.repeat==='monthly'&&d.monthMode==='weekday' ? '매월 '+nthWeekdayLabel(start)+', ' : '';
+    toast(dates.length > 1 ? `${wdLabel}일정 ${dates.length}개를 만들었어요` : '일정을 추가했어요');
   } else {
     const i = state.events.findIndex(e => e.id === d.id);
     if (i >= 0) state.events[i] = base; else state.events.push(base);   // 편집 중 다른 기기에서 지워졌으면 다시 살린다
@@ -889,6 +915,13 @@ document.addEventListener('click', e => {
     case 'backdrop': if (e.target === el) closeModal(); break;
     case 'close': closeModal(); break;
     case 'color': modal.draft.color = el.dataset.v; renderModal(); break;
+    case 'wd-toggle': {
+      const dr = modal.draft, v = Number(el.dataset.v);
+      let days = weekdaysOf(dr).slice();
+      days = days.includes(v) ? days.filter(x => x !== v) : [...days, v];
+      if (days.length) dr.weekdays = days;                             // 최소 하나는 유지
+      renderModal(); break;
+    }
     case 'le-add': {
       const kind = el.dataset.kind;
       const inp = document.querySelector(`[data-le-new="${kind}"]`);
@@ -1045,7 +1078,10 @@ document.addEventListener('change', e => {
   if (t.matches('[data-tpl-select]')){
     if (t.value) applyTemplate(t.value, false); else modal.draft.templateId = '';
     renderModal();
-  } else if (t.dataset.f === 'repeat' || t.dataset.f === 'monthMode' || (t.dataset.f === 'date' && modal.draft.repeat === 'monthly')){ renderModal(); }
+  } else if (t.dataset.f === 'repeat'){
+    if (t.value === 'weekly' && !(modal.draft.weekdays && modal.draft.weekdays.length)) modal.draft.weekdays = [parse(modal.draft.date).getDay()];
+    renderModal();
+  } else if (t.dataset.f === 'monthMode' || (t.dataset.f === 'date' && modal.draft.repeat !== 'none')){ renderModal(); }
 });
 /* ---------- 키보드 단축키 ----------
    e.code(키 위치)로 판단해서 한글 입력 상태에서도 동작한다. */
