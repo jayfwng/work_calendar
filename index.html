@@ -654,6 +654,25 @@ function renderModal(){
       <button class="btn" data-act="close">취소</button>
       <button class="btn primary" data-act="save-ev">저장</button>
     </div>`;
+  } else if (modal.type === 'edit-scope'){
+    const { orig, base, oldDate } = modal;
+    const fam = seriesMembers(orig).slice().sort(cmpEv);
+    const after = fam.filter(e => e.date >= oldDate).length;
+    const delta = Math.round((parse(base.date) - parse(oldDate)) / 86400000);
+    const ch = [];
+    if (delta !== 0) ch.push(`날짜 ${Math.abs(delta)}일 ${delta > 0 ? '뒤로' : '앞으로'}`);
+    if (base.time !== orig.time) ch.push(`시간 ${orig.time || '종일'}→${base.time || '종일'}`);
+    if (base.title !== orig.title) ch.push('제목');
+    const btn = (scope, label, n) => `<button class="btn del-opt" data-act="edit-scope" data-scope="${scope}"><span>${label}</span><span class="tag">${n}개</span></button>`;
+    body = `
+    <div class="sheet-h"><h2>반복 일정 변경</h2><button class="icon-btn" data-act="close" aria-label="닫기">${ICON.x}</button></div>
+    <p class="hint" style="margin:2px 0 10px">${ch.length ? esc(ch.join(' · ')) + ' — ' : ''}어디까지 적용할까요?${delta !== 0 ? '<br>“이후/전체”를 고르면 다른 날짜들도 같은 만큼 이동해요.' : ''}</p>
+    <div class="del-opts">
+      ${btn('this', '이 일정만', 1)}
+      ${btn('after', '이 일정과 이후 전체', after)}
+      ${btn('all', '전체 (반복 전부)', fam.length)}
+    </div>
+    <div class="actions"><span class="spacer"></span><button class="btn" data-act="close">취소</button></div>`;
   } else if (modal.type === 'delete'){
     const ev = modal.ev, fam = seriesMembers(ev).slice().sort(cmpEv);
     const after = fam.filter(e => e.date >= ev.date).length;
@@ -755,6 +774,12 @@ function saveEvent(){
     const wdLabel = d.repeat==='weekly' ? '매주 '+[...new Set(weekdaysOf(d))].sort((a,b)=>a-b).map(x=>DOW[x]).join('·')+', ' : d.repeat==='monthly'&&d.monthMode==='weekday' ? '매월 '+nthWeekdayLabel(start)+', ' : '';
     toast(dates.length > 1 ? `${wdLabel}일정 ${dates.length}개를 만들었어요` : '일정을 추가했어요');
   } else {
+    const prevEv = state.events.find(e => e.id === d.id);
+    if (prevEv && seriesMembers(prevEv).length > 1){                    // 반복 묶음이면 적용 범위를 묻는다
+      modal = { type:'edit-scope', orig: prevEv, base, oldDate: prevEv.date };
+      renderModal();
+      return;
+    }
     const i = state.events.findIndex(e => e.id === d.id);
     if (i >= 0) state.events[i] = base; else state.events.push(base);   // 편집 중 다른 기기에서 지워졌으면 다시 살린다
     toast('저장했어요');
@@ -960,6 +985,24 @@ document.addEventListener('click', e => {
       const fam = seriesMembers(cur);
       if (fam.length > 1){ modal = { type:'delete', ev: cur }; renderModal(); }
       else if (confirm('이 일정을 삭제할까요?')){ state.events = state.events.filter(x => x.id !== modal.draft.id); save(); closeModal(); render(); toast('삭제했어요'); }
+      break;
+    }
+    case 'edit-scope': {
+      const { orig, base, oldDate } = modal;
+      const fam = seriesMembers(orig), scope = el.dataset.scope;
+      const delta = Math.round((parse(base.date) - parse(oldDate)) / 86400000);   // 날짜 이동량(일)
+      const targets = scope === 'this' ? [orig] : scope === 'after' ? fam.filter(e => e.date >= oldDate) : fam;
+      const tset = new Set(targets.map(t => t.id));
+      state.events = state.events.map(t => {
+        if (!tset.has(t.id)) return t;
+        const self = t.id === orig.id;
+        const newDate = self ? base.date : ymd(addDays(parse(t.date), delta));
+        return { ...t, title: base.title, time: base.time, memo: base.memo, color: base.color, templateId: base.templateId,
+          date: newDate, order: (t.date === newDate ? t.order : undefined),      // 날짜 바뀌면 그날 순서 초기화
+          tasks: base.tasks.map(x => ({ text:x.text, id:uid(), done: self ? x.done : false })),
+          items: base.items.map(x => ({ text:x.text, id:uid(), done: self ? x.done : false })) };
+      });
+      save(); closeModal(); render(); toast(`${targets.length}개에 적용했어요`);
       break;
     }
     case 'del-scope': {
