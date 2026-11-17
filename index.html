@@ -386,7 +386,13 @@ function nthWeekdayDate(year, month, weekday, nth){                  // month 0~
 const orderedDows = () => Array.from({length:7}, (_, i) => (state.settings.weekStart + i) % 7);   // 설정의 주 시작부터
 const weekdaysOf = d => (d.weekdays && d.weekdays.length) ? d.weekdays : [parse(d.date).getDay()]; // 기본은 시작일 요일
 const ordOf = e => Number.isFinite(e.order) ? e.order : 1e9;
-const seriesMembers = ev => ev && ev.seriesId ? state.events.filter(e => e.seriesId === ev.seriesId) : (ev ? [ev] : []);      // 직접 정한 우선순위가 먼저, 없으면 시간순
+const seriesMembers = ev => ev && ev.seriesId ? state.events.filter(e => e.seriesId === ev.seriesId) : (ev ? [ev] : []);
+// 삭제용 묶음: 반복 묶음이 있으면 그걸로, 없으면(옛 반복) 제목·시간·색이 같은 일정을 한 묶음으로 본다
+function delGroup(ev){
+  if (!ev) return [];
+  if (ev.seriesId) return seriesMembers(ev);
+  return state.events.filter(e => e.title === ev.title && (e.time||'') === (ev.time||'') && e.color === ev.color);
+}
 const cmpEv = (a,b) => a.date.localeCompare(b.date) || ordOf(a) - ordOf(b) || (a.time||'').localeCompare(b.time||'') || a.title.localeCompare(b.title);
 function nextOrder(date, exceptId){                                    // 그날 순서를 정해 둔 상태면 맨 뒤 번호
   const os = state.events.filter(e => e.date === date && e.id !== exceptId && Number.isFinite(e.order)).map(e => e.order);
@@ -674,13 +680,13 @@ function renderModal(){
     </div>
     <div class="actions"><span class="spacer"></span><button class="btn" data-act="close">취소</button></div>`;
   } else if (modal.type === 'delete'){
-    const ev = modal.ev, fam = seriesMembers(ev).slice().sort(cmpEv);
+    const ev = modal.ev, fam = delGroup(ev).slice().sort(cmpEv);
     const after = fam.filter(e => e.date >= ev.date).length;
     const before = fam.filter(e => e.date <= ev.date).length;
     const btn = (scope, label, n) => `<button class="btn del-opt" data-act="del-scope" data-scope="${scope}"><span>${label}</span><span class="tag">${n}개</span></button>`;
     body = `
     <div class="sheet-h"><h2>반복 일정 삭제</h2><button class="icon-btn" data-act="close" aria-label="닫기">${ICON.x}</button></div>
-    <p class="hint" style="margin:2px 0 10px">“${esc(ev.title)}” — ${fmtLong(ev.date)} 기준. 어디까지 삭제할까요?</p>
+    <p class="hint" style="margin:2px 0 10px">“${esc(ev.title)}” — ${fmtLong(ev.date)} 기준. 어디까지 삭제할까요?${modal.byTitle ? '<br>제목·시간·색이 같은 일정을 한 묶음으로 봐요.' : ''}</p>
     <div class="del-opts">
       ${btn('this', '이 일정만', 1)}
       ${btn('after', '이 일정과 이후 전체', after)}
@@ -982,8 +988,7 @@ document.addEventListener('click', e => {
     case 'save-ev': saveEvent(); break;
     case 'del-ev': {
       const cur = state.events.find(x => x.id === modal.draft.id);
-      const fam = seriesMembers(cur);
-      if (fam.length > 1){ modal = { type:'delete', ev: cur }; renderModal(); }
+      if (delGroup(cur).length > 1){ modal = { type:'delete', ev: cur, byTitle: !cur.seriesId }; renderModal(); }
       else if (confirm('이 일정을 삭제할까요?')){ state.events = state.events.filter(x => x.id !== modal.draft.id); save(); closeModal(); render(); toast('삭제했어요'); }
       break;
     }
@@ -1006,7 +1011,7 @@ document.addEventListener('click', e => {
       break;
     }
     case 'del-scope': {
-      const ev = modal.ev, fam = seriesMembers(ev), scope = el.dataset.scope;
+      const ev = modal.ev, fam = delGroup(ev), scope = el.dataset.scope;
       let rm;
       if (scope === 'this') rm = new Set([ev.id]);
       else if (scope === 'after') rm = new Set(fam.filter(e => e.date >= ev.date).map(e => e.id));
