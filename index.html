@@ -791,16 +791,19 @@ function viewSide(){
 
 /* 오른쪽 오늘 할 일 (컴퓨터) — 끌어서 놓거나 ▲▼로 우선순위 변경 */
 function viewTodo(){
-  const t = todayStr(), evs = eventsOn(t), doneN = evs.filter(e => e.done).length;
-  const overdue = state.events.filter(e => e.date < t && !e.done).sort(cmpEv);
+  const t = todayStr(), sd = ui.selDate || t, isToday = sd === t;
+  const evs = eventsOn(sd), doneN = evs.filter(e => e.done).length;
+  const overdue = isToday ? state.events.filter(e => e.date < t && !e.done).sort(cmpEv) : [];
   const pct = evs.length ? Math.round(doneN / evs.length * 100) : 0;
   return `
-  <div class="top" style="margin:0 0 12px"><div><div class="eyebrow">오늘 할 일 · ${doneN}/${evs.length} 완료</div><h2>${fmtLong(t)}</h2></div>
-    <button class="icon-btn" data-act="new-ev" data-date="${t}" title="오늘 일정 추가" aria-label="오늘 일정 추가">${ICON.plus}</button></div>
+  <div class="top" style="margin:0 0 12px"><div><div class="eyebrow">${isToday ? '오늘 할 일' : '선택한 날짜'} · ${doneN}/${evs.length} 완료</div><h2>${fmtLong(sd)}</h2></div>
+    <div style="display:flex;gap:4px">
+      ${isToday ? '' : `<button class="btn sm" data-act="todo-today" title="오늘로">오늘</button>`}
+      <button class="icon-btn" data-act="new-ev" data-date="${sd}" title="이 날 일정 추가" aria-label="이 날 일정 추가">${ICON.plus}</button></div></div>
   ${evs.length ? `<div class="overall" style="margin:0 0 14px"><div class="row"><span>진행률</span><span>${pct}%</span></div><span class="bar"><i style="width:${pct}%"></i></span></div>
     ${evs.length > 1 ? '<div class="todo-hint">끌어서 놓거나 ▲▼로 우선순위를 바꿀 수 있어요</div>' : ''}
-    <div data-drop-list="${t}">${evs.map((e, i) => card(e, { reorder: i + 1 })).join('')}</div>`
-    : `<div class="empty">오늘 할 일이 없어요.<br><button class="btn primary sm" data-act="new-ev" data-date="${t}">일정 추가</button></div>`}
+    <div data-drop-list="${sd}">${evs.map((e, i) => card(e, { reorder: i + 1 })).join('')}</div>`
+    : `<div class="empty">${isToday ? '오늘' : '이 날은'} 할 일이 없어요.<br><button class="btn primary sm" data-act="new-ev" data-date="${sd}">일정 추가</button></div>`}
   ${overdue.length ? `<div class="sec-h warn"><span>밀린 업무</span><span>${overdue.length}</span></div>${list(overdue, { showDate:true })}` : ''}`;
 }
 function applyTheme(){
@@ -865,6 +868,7 @@ document.addEventListener('click', e => {
       if (ui.selDate.slice(0,7) !== ui.monthAnchor) ui.monthAnchor = ui.selDate.slice(0,7);
       render(); break;
     }
+    case 'todo-today': ui.selDate = todayStr(); if (ui.monthAnchor !== todayStr().slice(0,7)) ui.monthAnchor = todayStr().slice(0,7); render(); break;
     case 'week-prev': ui.weekAnchor = ymd(addDays(parse(ui.weekAnchor), -7)); render(); break;
     case 'week-next': ui.weekAnchor = ymd(addDays(parse(ui.weekAnchor), 7)); render(); break;
     case 'week-today': ui.weekAnchor = todayStr(); render(); break;
