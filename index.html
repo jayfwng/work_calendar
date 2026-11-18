@@ -225,6 +225,7 @@ textarea.inp{min-height:70px;resize:vertical}
   .month-foot{display:none}                                  /* 오른쪽에 오늘 할 일이 있으니 하단 목록 제거 */
   .mgrid{flex:1;min-height:0;gap:4px;padding:10px;grid-auto-rows:minmax(0,1fr)}
   .cell{min-height:0;overflow:hidden;padding:6px 5px;gap:3px}
+  .mgrid .cell > *{flex:0 0 auto}            /* 칩이 flex로 찌그러지지 않게 (안 그러면 잘려 보임) */
   .cell .n{font-size:14px;width:26px;height:26px}
   .chip{font-size:12.5px;line-height:19px;padding:1px 6px;border-radius:4px}
   .cell .more{font-size:11px}
@@ -514,10 +515,12 @@ function viewMonth(){
   let grid = '';
   for (let i = 0; i < cells; i++){
     const d = addDays(start, i), ds = ymd(d), evs = eventsOn(ds);
-    const maxChips = isDesk() ? 4 : 3;
-    const chips = evs.slice(0,maxChips).map(e => `<i class="chip ${e.done?'done':''}" style="--c:${esc(e.color)}" data-ev="${e.id}" title="${esc(e.title)} · 더블클릭해서 수정">${isDesk() && e.time ? e.time + ' ' : ''}${esc(e.title)}</i>`).join('');
+    const desk = isDesk();
+    const shown = desk ? evs : evs.slice(0, 3);                         // 데스크톱은 전부 그린 뒤 fitMonthCells가 칸 높이에 맞춰 자른다
+    const chips = shown.map(e => `<i class="chip ${e.done?'done':''}" style="--c:${esc(e.color)}" data-ev="${e.id}" title="${esc(e.title)} · 더블클릭해서 수정">${desk && e.time ? e.time + ' ' : ''}${esc(e.title)}</i>`).join('');
+    const more = !desk && evs.length > 3 ? `<i class="more">+${evs.length - 3}</i>` : '';
     grid += `<button class="cell ${d.getMonth()!==m-1?'other':''} ${ds===t?'today':''} ${ds===ui.selDate?'sel':''}" data-act="sel-date" data-date="${ds}" aria-label="${fmtLong(ds)} 일정 ${evs.length}개">
-      <span class="n ${dowClass(d)}">${d.getDate()}</span>${chips}${evs.length>maxChips?`<i class="more">+${evs.length-maxChips}</i>`:''}</button>`;
+      <span class="n ${dowClass(d)}">${d.getDate()}</span>${chips}${more}</button>`;
   }
   const sel = eventsOn(ui.selDate);
   const monthEvs = state.events.filter(e => e.date.startsWith(ui.monthAnchor));
@@ -815,7 +818,37 @@ function render(){
   document.getElementById('side').innerHTML = viewSide();
   document.getElementById('todo').innerHTML = viewTodo();
   applyTheme();
+  if (ui.view === 'month') requestAnimationFrame(() => requestAnimationFrame(fitMonthCells));
 }
+// 데스크톱 월별: 칸 높이에 들어갈 만큼만 일정 칩을 보이고 나머지는 +N 으로 접는다
+function fitMonthCells(){
+  if (!isDesk() || ui.view !== 'month') return;
+  document.querySelectorAll('#app .mgrid .cell').forEach(cell => {
+    const n = cell.querySelector('.n'); if (!n) return;
+    const chips = [...cell.querySelectorAll('.chip')];
+    const oldMore = cell.querySelector('.more'); if (oldMore) oldMore.remove();
+    chips.forEach(c => { c.style.display = ''; });
+    if (!chips.length) return;
+    const cs = getComputedStyle(cell);
+    const gap = parseFloat(cs.rowGap || cs.gap) || 0;
+    const padV = (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
+    const avail = cell.clientHeight - padV - n.offsetHeight - gap - 4; // 날짜 숫자 아래 칩들이 쓸 수 있는 높이(+안전여백)
+    const chipH = chips[0].offsetHeight + gap;
+    if (chipH <= 0) return;
+    const full = Math.floor((avail + gap) / chipH);                   // 온전히 들어가는 칩 줄 수
+    if (full >= chips.length) return;                                 // 다 들어가면 그대로
+    const leftover = avail - full * chipH;                            // 마지막 칩 뒤 남는 높이
+    const show = Math.max(1, leftover >= 16 ? full : full - 1);       // 남는 공간에 +N 배지가 들어가면 칩을 덜 지운다
+    chips.forEach((c, i) => { if (i >= show) c.style.display = 'none'; });
+    const more = document.createElement('i');
+    more.className = 'more';
+    more.textContent = `+${chips.length - show}`;
+    cell.appendChild(more);
+  });
+}
+let fitTimer;
+addEventListener('resize', () => { clearTimeout(fitTimer); fitTimer = setTimeout(() => { if (ui.view === 'month') fitMonthCells(); }, 120); });
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (ui.view === 'month') fitMonthCells(); });
 const deskMQ = matchMedia('(min-width:1024px)');
 const isDesk = () => deskMQ.matches;
 deskMQ.addEventListener && deskMQ.addEventListener('change', () => render());
