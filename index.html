@@ -184,7 +184,19 @@ textarea.inp{min-height:70px;resize:vertical}
 .note-body .muted{opacity:.7}
 .note-title{font-size:17px;font-weight:700}
 textarea.note-area{min-height:300px;line-height:1.55;white-space:pre;overflow-wrap:normal;overflow:auto;font-size:14px;tab-size:2}
-@media (min-width:1024px){ textarea.note-area{min-height:56vh} }
+textarea.note-area{min-height:110px}
+.note-body{display:block}
+.nstep{display:flex;gap:8px;margin:4px 0}
+.nstep-n{flex:none;width:19px;height:19px;border-radius:50%;background:var(--surface2);color:var(--muted);font-size:11px;font-weight:700;display:grid;place-items:center;margin-top:1px}
+.nstep-t{font-size:13px;color:var(--text);font-weight:600;line-height:1.4}
+.nstep-d{font-size:12.5px;color:var(--muted);line-height:1.45;white-space:pre-wrap}
+.nmemo{margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);font-size:12.5px;color:var(--muted);white-space:pre-wrap;line-height:1.5}
+.nstep-edit{display:flex;gap:8px;align-items:flex-start;margin-bottom:8px}
+.nstep-edit .nstep-n{margin-top:10px}
+.nstep-ins{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+.nstep-edit .icon-btn{flex:none;margin-top:5px}
+.nstep-desc-in{font-size:13px;color:var(--muted)}
+@media (min-width:1024px){ textarea.note-area{min-height:130px} }
 
 .pill{flex:none;font-size:12px;padding:4px 10px;border-radius:20px;background:var(--surface2);color:var(--muted);border:0;cursor:pointer}
 .pill.ok{color:var(--ok)}
@@ -323,8 +335,13 @@ function defaultState(){
       items:['사업자등록증 사본','입찰참가신청서','견적서','인감증명서','사용인감계','법인등기부등본']
     }],
     notes:[{
-      id:'note-bid', updatedAt:0, title:'입찰 프로세스',
-      body:'1. 현장 설명회\n  - 현장설명서 첨부\n  - 참석 여부 체크\n\n2. 견적\n  - 업체가 시스템에 견적 입력\n  - 금액 검토 후 내부 공유\n\n3. 서류 준비\n  - 사업자등록증, 인감증명서 등\n\n4. 제출 / 개찰\n  - 마감 시간 전 제출\n  - 개찰 결과 확인'
+      id:'note-bid', updatedAt:0, title:'입찰 프로세스', memo:'공고 확인 후 담당자에게 공유. 마감 시간 꼭 체크.',
+      steps:[
+        { text:'현장 설명회', desc:'현장설명서 첨부, 참석 여부 체크' },
+        { text:'견적', desc:'업체가 시스템에 견적 입력 → 금액 검토 후 내부 공유' },
+        { text:'서류 준비', desc:'사업자등록증, 인감증명서 등' },
+        { text:'제출 / 개찰', desc:'마감 시간 전 제출, 개찰 결과 확인' }
+      ]
     }],
     deleted:{},                 // 동기화용 삭제 기록 { id: 삭제시각 }
     settings:{ weekStart:1, theme:'system' }
@@ -347,7 +364,10 @@ function normalize(s){
       tasks:(t.tasks||[]).map(String), items:(t.items||[]).map(String), updatedAt:+t.updatedAt||0
     })),
     notes: (Array.isArray(s.notes) ? s.notes : d.notes).map(nt => ({
-      id:nt.id||uid(), title:String(nt.title||''), body:String(nt.body||''), updatedAt:+nt.updatedAt||0
+      id:nt.id||uid(), title:String(nt.title||''),
+      steps:(Array.isArray(nt.steps)?nt.steps:[]).map(st => ({ text:String(st.text||''), desc:String(st.desc||'') })),
+      memo:String(nt.memo != null ? nt.memo : (nt.body||'')),   // 예전 자유 메모(body)는 메모칸으로 이전
+      updatedAt:+nt.updatedAt||0
     })),
     deleted: (s.deleted && typeof s.deleted === 'object') ? { ...s.deleted } : {},
     settings: { ...d.settings, ...(s.settings||{}) }
@@ -686,10 +706,19 @@ function renderModal(){
     </div>`;
   } else if (modal.type === 'note'){
     const d = modal.draft;
+    const stepRows = (d.steps||[]).map((st, i) => `<div class="nstep-edit"><span class="nstep-n">${i+1}</span>
+      <div class="nstep-ins">
+        <input class="inp" data-nstep="text" data-i="${i}" value="${esc(st.text)}" placeholder="단계 이름 (예: 현장 설명회)">
+        <input class="inp nstep-desc-in" data-nstep="desc" data-i="${i}" value="${esc(st.desc)}" placeholder="간단한 설명">
+      </div>
+      <button class="icon-btn" data-act="nstep-del" data-i="${i}" aria-label="단계 삭제">${ICON.x}</button></div>`).join('');
     body = `
     <div class="sheet-h"><h2>${modal.isNew ? '새 메모' : '메모'}</h2><button class="icon-btn" data-act="close" aria-label="닫기">${ICON.x}</button></div>
-    <div class="field"><input class="inp note-title" data-f="title" value="${esc(d.title)}" placeholder="제목 (예: 입찰 프로세스)"></div>
-    <div class="field"><textarea class="inp note-area" data-f="body" placeholder="업무 절차나 메모를 자유롭게 적으세요.\n줄바꿈·들여쓰기가 그대로 보여요.">${esc(d.body)}</textarea></div>
+    <div class="field"><div class="label">업무 프로세스명</div><input class="inp note-title" data-f="title" value="${esc(d.title)}" placeholder="예: 입찰 프로세스"></div>
+    <div class="field"><div class="label"><span>단계</span><span>${(d.steps||[]).length}개</span></div>
+      ${stepRows}
+      <button class="btn sm" data-act="nstep-add" style="margin-top:4px">${ICON.plus} 단계 추가</button></div>
+    <div class="field"><div class="label">메모</div><textarea class="inp note-area" data-f="memo" placeholder="자유 메모 (줄바꿈 그대로 보여요)">${esc(d.memo)}</textarea><div class="hint">Ctrl+Enter 또는 Ctrl+S 로 저장</div></div>
     <div class="actions">
       ${modal.isNew ? '' : '<button class="btn danger" data-act="del-note">삭제</button>'}
       <span class="spacer"></span>
@@ -737,8 +766,8 @@ function renderModal(){
     <div class="sheet-h"><h2>키보드 단축키</h2><button class="icon-btn" data-act="close" aria-label="닫기">${ICON.x}</button></div>
     <div class="keys">
       <h3>이동</h3>
-      ${row(['1'], '월별')}${row(['2'], '주간')}${row(['3'], '오늘 할 일')}${row(['4'], '설정')}
-      ${row(['M'], '월별 (한 번 더 누르면 이번 달)')}${row(['W'], '주간 (한 번 더 누르면 이번 주)')}${row(['T'], '오늘 할 일')}${row(['5'], '메모')}
+      ${row(['1'], '월별')}${row(['2'], '주간')}${row(['3'], '오늘 할 일')}${row(['4'], '메모')}${row(['5'], '설정')}
+      ${row(['M'], '월별 (한 번 더 누르면 이번 달)')}${row(['W'], '주간 (한 번 더 누르면 이번 주)')}${row(['T'], '오늘 할 일')}
       ${row(['←','→'], '이전 / 다음 주·달')}${row(['['], '왼쪽 메뉴 접기 / 펼치기 (컴퓨터)')}
       <h3>일정</h3>
       ${row(['N'], '새 일정 (보고 있는 날짜에)')}
@@ -894,7 +923,7 @@ function applySide(){ document.documentElement.classList.toggle('side-collapsed'
 function toggleSide(){ sideCollapsed = !sideCollapsed; try { localStorage.setItem('workcal.side', sideCollapsed ? '1' : '0'); } catch(e){} applySide(); }
 applySide();
 function viewSide(){
-  const items = [['month','월별','1'],['week','주간','2'],['today','오늘 할 일','3'],['notes','메모','5'],['settings','설정','4']];
+  const items = [['month','월별','1'],['week','주간','2'],['today','오늘 할 일','3'],['notes','메모','4'],['settings','설정','5']];
   return `
   <div class="side-h"><button class="icon-btn" data-act="side-toggle" title="메뉴 접기/펼치기 ( [ )" aria-label="메뉴 접기/펼치기">${ICON.menu}</button><span class="brand">업무 캘린더</span></div>
   <button class="btn primary side-new" data-act="new-ev-here" title="새 일정 (N)">${ICON.plus}<span class="lbl">새 일정</span><kbd>N</kbd></button>
@@ -1039,6 +1068,8 @@ document.addEventListener('click', e => {
     case 'del-note':
       if (confirm('이 메모를 삭제할까요?')){ state.notes = state.notes.filter(n => n.id !== modal.draft.id); save(); closeModal(); render(); toast('메모를 삭제했어요'); }
       break;
+    case 'nstep-add': modal.draft.steps.push({ text:'', desc:'' }); renderModal(); setTimeout(() => { const r = document.querySelectorAll('[data-nstep="text"]'); const last = r[r.length-1]; last && last.focus(); }, 20); break;
+    case 'nstep-del': modal.draft.steps.splice(Number(el.dataset.i), 1); if (!modal.draft.steps.length) modal.draft.steps.push({ text:'', desc:'' }); renderModal(); break;
 
     /* 모달 */
     case 'backdrop': if (e.target === el) closeModal(); break;
@@ -1231,6 +1262,7 @@ document.addEventListener('input', e => {
   if (t.dataset.cfg){ cfgDraft[t.dataset.cfg] = t.value; return; }
   if (!modal) return;
   if (t.dataset.f){ modal.draft[t.dataset.f] = t.value; }
+  else if (t.dataset.nstep){ modal.draft.steps[Number(t.dataset.i)][t.dataset.nstep] = t.value; }
   else if (t.dataset.le){ modal.draft[t.dataset.le][Number(t.dataset.i)].text = t.value; }
 });
 document.addEventListener('change', e => {
@@ -1256,9 +1288,15 @@ function goView(v){
 }
 function viewNotes(){
   const notes = [...state.notes].sort((a,b) => (b.updatedAt||0) - (a.updatedAt||0));   // 최근 수정 먼저
-  const card = nt => `<article class="note-card" data-act="edit-note" data-id="${nt.id}">
-    <div class="note-card-h"><b>${esc(nt.title) || '(제목 없음)'}</b><span class="icon-btn" aria-hidden="true">${ICON.edit}</span></div>
-    <div class="note-body">${esc(nt.body) || '<span class="muted">내용 없음</span>'}</div></article>`;
+  const card = nt => {
+    const steps = (nt.steps||[]).filter(st => st.text.trim() || st.desc.trim());
+    const stepsHtml = steps.map((st, i) => `<div class="nstep"><span class="nstep-n">${i+1}</span><div><div class="nstep-t">${esc(st.text) || ''}</div>${st.desc.trim() ? `<div class="nstep-d">${esc(st.desc)}</div>` : ''}</div></div>`).join('');
+    const memo = (nt.memo||'').trim();
+    const empty = !steps.length && !memo;
+    return `<article class="note-card" data-act="edit-note" data-id="${nt.id}">
+      <div class="note-card-h"><b>${esc(nt.title) || '(제목 없음)'}</b><span class="icon-btn" aria-hidden="true">${ICON.edit}</span></div>
+      <div class="note-body">${empty ? '<span class="muted">내용 없음</span>' : stepsHtml + (memo ? `<div class="nmemo">${esc(memo)}</div>` : '')}</div></article>`;
+  };
   return `
   <header class="top"><div><div class="eyebrow">메모 · ${state.notes.length}개</div><h1>업무 메모</h1></div>
     <button class="btn primary sm" data-act="new-note">+ 새 메모</button></header>
@@ -1267,14 +1305,15 @@ function viewNotes(){
 }
 function openNote(id){
   const nt = id && state.notes.find(n => n.id === id);
-  modal = { type:'note', isNew: !nt, draft: nt ? { ...nt } : { id:uid(), title:'', body:'' } };
+  modal = { type:'note', isNew: !nt, draft: nt ? JSON.parse(JSON.stringify(nt)) : { id:uid(), title:'', steps:[{ text:'', desc:'' }], memo:'' } };
   pushModalState(); renderModal();
   if (!nt) setTimeout(() => { const f = document.querySelector('[data-f="title"]'); f && f.focus(); }, 30);
 }
 function saveNote(){
   const d = modal.draft;
-  if (!d.title.trim() && !d.body.trim()){ toast('제목이나 내용을 입력해 주세요'); return; }
-  const nt = { id:d.id, title:d.title.trim(), body:d.body };
+  const steps = (d.steps||[]).map(st => ({ text:st.text.trim(), desc:st.desc.trim() })).filter(st => st.text || st.desc);
+  if (!d.title.trim() && !steps.length && !(d.memo||'').trim()){ toast('제목이나 내용을 입력해 주세요'); return; }
+  const nt = { id:d.id, title:d.title.trim(), steps, memo:d.memo || '' };
   const i = state.notes.findIndex(n => n.id === d.id);
   if (i >= 0) state.notes[i] = nt; else state.notes.push(nt);
   save(); closeModal(); render(); toast('메모를 저장했어요');
@@ -1302,7 +1341,7 @@ document.addEventListener('keydown', e => {
   if (modal){
     if (mod && (e.key === 'Enter' || e.code === 'KeyS')){
       e.preventDefault();
-      if (modal.type === 'event') saveEvent(); else if (modal.type === 'template') saveTemplate();
+      if (modal.type === 'event') saveEvent(); else if (modal.type === 'template') saveTemplate(); else if (modal.type === 'note') saveNote();
     }
     return;
   }
@@ -1310,9 +1349,9 @@ document.addEventListener('keydown', e => {
   if (e.code === 'Slash' && e.shiftKey){ e.preventDefault(); openHelp(); return; }
   if (e.shiftKey) return;
   const act = {
-    Digit1:() => goView('month'), Digit2:() => goView('week'), Digit3:() => goView('today'), Digit4:() => goView('settings'),
+    Digit1:() => goView('month'), Digit2:() => goView('week'), Digit3:() => goView('today'), Digit4:() => goView('notes'),
     KeyM:() => goView('month'), KeyW:() => goView('week'), KeyT:() => goView('today'),
-    Digit5:() => goView('notes'),
+    Digit5:() => goView('settings'),
     ArrowLeft:() => stepPeriod(-1), ArrowRight:() => stepPeriod(1),
     BracketLeft:() => toggleSide(),
     KeyN:() => openEvent(null, fabDate()),
