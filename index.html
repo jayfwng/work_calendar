@@ -394,7 +394,7 @@ function delGroup(ev){
   if (ev.seriesId) return seriesMembers(ev);
   return state.events.filter(e => e.title === ev.title && (e.time||'') === (ev.time||'') && e.color === ev.color);
 }
-const cmpEv = (a,b) => a.date.localeCompare(b.date) || ordOf(a) - ordOf(b) || (a.time||'').localeCompare(b.time||'') || a.title.localeCompare(b.title);
+const cmpEv = (a,b) => a.date.localeCompare(b.date) || (a.done?1:0) - (b.done?1:0) || ordOf(a) - ordOf(b) || (a.time||'').localeCompare(b.time||'') || a.title.localeCompare(b.title);   // 완료한 일정은 그 날짜 안에서 맨 뒤로
 function nextOrder(date, exceptId){                                    // 그날 순서를 정해 둔 상태면 맨 뒤 번호
   const os = state.events.filter(e => e.date === date && e.id !== exceptId && Number.isFinite(e.order)).map(e => e.order);
   return os.length ? Math.max(...os) + 1 : undefined;
