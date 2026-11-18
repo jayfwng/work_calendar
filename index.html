@@ -135,8 +135,8 @@ kbd{display:inline-block;min-width:24px;padding:2px 7px;border:1px solid var(--l
 
 /* nav + fab */
 nav.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);z-index:20;padding-bottom:var(--inset-bottom)}
-nav.tabs .inner{max-width:760px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr)}
-nav.tabs button{background:none;border:0;color:var(--muted);font-size:11.5px;padding:8px 0 10px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
+nav.tabs .inner{max-width:760px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr)}
+nav.tabs button{background:none;border:0;color:var(--muted);font-size:11px;padding:8px 0 10px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
 nav.tabs button.on{color:var(--accent);font-weight:700}
 nav.tabs svg{width:22px;height:22px}
 .fab{position:fixed;right:max(16px,calc(50vw - 364px));bottom:calc(78px + var(--inset-bottom));width:54px;height:54px;border-radius:50%;
@@ -172,6 +172,19 @@ textarea.inp{min-height:70px;resize:vertical}
 .del-opts{display:flex;flex-direction:column;gap:8px;margin:4px 0}
 .del-opt{justify-content:space-between;padding:12px 14px;font-size:15px}
 .del-opt[data-scope="all"]{color:var(--danger)}
+.notes-list{display:grid;gap:10px;grid-template-columns:1fr}
+@media (min-width:640px){ .notes-list{grid-template-columns:1fr 1fr} }
+.note-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;box-shadow:var(--shadow);cursor:pointer;overflow:hidden}
+.note-card:hover{border-color:var(--accent)}
+.note-card-h{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+.note-card-h b{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.note-card-h .icon-btn{flex:none;width:26px;height:26px;color:var(--muted)}
+.note-body{font-size:13px;color:var(--muted);white-space:pre-wrap;line-height:1.5;max-height:160px;overflow:hidden;
+  -webkit-mask-image:linear-gradient(180deg,#000 72%,transparent);mask-image:linear-gradient(180deg,#000 72%,transparent)}
+.note-body .muted{opacity:.7}
+.note-title{font-size:17px;font-weight:700}
+textarea.note-area{min-height:300px;line-height:1.55;white-space:pre;overflow-wrap:normal;overflow:auto;font-size:14px;tab-size:2}
+@media (min-width:1024px){ textarea.note-area{min-height:56vh} }
 
 .pill{flex:none;font-size:12px;padding:4px 10px;border-radius:20px;background:var(--surface2);color:var(--muted);border:0;cursor:pointer}
 .pill.ok{color:var(--ok)}
@@ -295,6 +308,7 @@ const ICON = {
   right:'<svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>',
   grip:'<svg viewBox="0 0 24 24"><circle cx="9" cy="6" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="18" r="1"/></svg>',
   menu:'<svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>',
+  notes:'<svg viewBox="0 0 24 24"><path d="M5 3h11l3 3v15a0 0 0 0 1 0 0H5a0 0 0 0 1 0 0z"/><path d="M15 3v4h4M8 11h8M8 15h8M8 7h3"/></svg>',
   edit:'<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4z"/></svg>',
 };
 
@@ -307,6 +321,10 @@ function defaultState(){
       id:'tpl-bid', updatedAt:0, name:'입찰', color:'#e8833a', time:'', memo:'공고번호 / 마감일시 / 발주처 담당자',
       tasks:['입찰 공고 확인 및 참가 자격 검토','현장설명회 참석 여부 확인','견적·가격 산정','내부 품의 및 결재','입찰 서류 제출','개찰 결과 확인'],
       items:['사업자등록증 사본','입찰참가신청서','견적서','인감증명서','사용인감계','법인등기부등본']
+    }],
+    notes:[{
+      id:'note-bid', updatedAt:0, title:'입찰 프로세스',
+      body:'1. 현장 설명회\n  - 현장설명서 첨부\n  - 참석 여부 체크\n\n2. 견적\n  - 업체가 시스템에 견적 입력\n  - 금액 검토 후 내부 공유\n\n3. 서류 준비\n  - 사업자등록증, 인감증명서 등\n\n4. 제출 / 개찰\n  - 마감 시간 전 제출\n  - 개찰 결과 확인'
     }],
     deleted:{},                 // 동기화용 삭제 기록 { id: 삭제시각 }
     settings:{ weekStart:1, theme:'system' }
@@ -328,6 +346,9 @@ function normalize(s){
       id:t.id||uid(), name:String(t.name||''), color:t.color||COLORS[0], time:t.time||'', memo:t.memo||'',
       tasks:(t.tasks||[]).map(String), items:(t.items||[]).map(String), updatedAt:+t.updatedAt||0
     })),
+    notes: (Array.isArray(s.notes) ? s.notes : d.notes).map(nt => ({
+      id:nt.id||uid(), title:String(nt.title||''), body:String(nt.body||''), updatedAt:+nt.updatedAt||0
+    })),
     deleted: (s.deleted && typeof s.deleted === 'object') ? { ...s.deleted } : {},
     settings: { ...d.settings, ...(s.settings||{}) }
   };
@@ -345,10 +366,10 @@ function persist(){
 /* 바뀐 항목에 수정 시각을, 사라진 항목에 삭제 기록을 남긴다 (동기화 병합용) */
 const stripTs = o => { const { updatedAt, ...rest } = o; return JSON.stringify(rest); };
 let snap = new Map();
-function snapshot(){ snap = new Map(); for (const x of [...state.events, ...state.templates]) snap.set(x.id, stripTs(x)); }
+function snapshot(){ snap = new Map(); for (const x of [...state.events, ...state.templates, ...state.notes]) snap.set(x.id, stripTs(x)); }
 function stamp(){
   const now = Date.now(), seen = new Set();
-  for (const x of [...state.events, ...state.templates]){
+  for (const x of [...state.events, ...state.templates, ...state.notes]){
     seen.add(x.id);
     if (snap.get(x.id) !== stripTs(x)) x.updatedAt = now;
   }
@@ -663,6 +684,18 @@ function renderModal(){
       <button class="btn" data-act="close">취소</button>
       <button class="btn primary" data-act="save-ev">저장</button>
     </div>`;
+  } else if (modal.type === 'note'){
+    const d = modal.draft;
+    body = `
+    <div class="sheet-h"><h2>${modal.isNew ? '새 메모' : '메모'}</h2><button class="icon-btn" data-act="close" aria-label="닫기">${ICON.x}</button></div>
+    <div class="field"><input class="inp note-title" data-f="title" value="${esc(d.title)}" placeholder="제목 (예: 입찰 프로세스)"></div>
+    <div class="field"><textarea class="inp note-area" data-f="body" placeholder="업무 절차나 메모를 자유롭게 적으세요.\n줄바꿈·들여쓰기가 그대로 보여요.">${esc(d.body)}</textarea></div>
+    <div class="actions">
+      ${modal.isNew ? '' : '<button class="btn danger" data-act="del-note">삭제</button>'}
+      <span class="spacer"></span>
+      <button class="btn" data-act="close">취소</button>
+      <button class="btn primary" data-act="save-note">저장</button>
+    </div>`;
   } else if (modal.type === 'edit-scope'){
     const { orig, base, oldDate } = modal;
     const fam = seriesMembers(orig).slice().sort(cmpEv);
@@ -705,7 +738,7 @@ function renderModal(){
     <div class="keys">
       <h3>이동</h3>
       ${row(['1'], '월별')}${row(['2'], '주간')}${row(['3'], '오늘 할 일')}${row(['4'], '설정')}
-      ${row(['M'], '월별 (한 번 더 누르면 이번 달)')}${row(['W'], '주간 (한 번 더 누르면 이번 주)')}${row(['T'], '오늘 할 일')}
+      ${row(['M'], '월별 (한 번 더 누르면 이번 달)')}${row(['W'], '주간 (한 번 더 누르면 이번 주)')}${row(['T'], '오늘 할 일')}${row(['5'], '메모')}
       ${row(['←','→'], '이전 / 다음 주·달')}${row(['['], '왼쪽 메뉴 접기 / 펼치기 (컴퓨터)')}
       <h3>일정</h3>
       ${row(['N'], '새 일정 (보고 있는 날짜에)')}
@@ -806,10 +839,10 @@ function saveTemplate(){
 }
 
 /* ---------- 렌더 ---------- */
-const TABS = [['month','월별'],['week','주간'],['today','오늘 할 일'],['settings','설정']];
+const TABS = [['month','월별'],['week','주간'],['today','오늘 할 일'],['notes','메모'],['settings','설정']];
 function render(){
   const app = document.getElementById('app');
-  app.innerHTML = ui.view === 'today' ? viewToday() : ui.view === 'week' ? viewWeek() : ui.view === 'month' ? viewMonth() : viewSettings();
+  app.innerHTML = ui.view === 'today' ? viewToday() : ui.view === 'week' ? viewWeek() : ui.view === 'month' ? viewMonth() : ui.view === 'notes' ? viewNotes() : viewSettings();
   document.getElementById('tabs').innerHTML = TABS.map(([v,l]) =>
     `<button class="${ui.view===v?'on':''}" data-act="tab" data-v="${v}" ${ui.view===v?'aria-current="page"':''}>${ICON[v]}<span>${l}</span></button>`).join('');
   const fab = document.getElementById('fab');
@@ -861,7 +894,7 @@ function applySide(){ document.documentElement.classList.toggle('side-collapsed'
 function toggleSide(){ sideCollapsed = !sideCollapsed; try { localStorage.setItem('workcal.side', sideCollapsed ? '1' : '0'); } catch(e){} applySide(); }
 applySide();
 function viewSide(){
-  const items = [['month','월별','1'],['week','주간','2'],['today','오늘 할 일','3'],['settings','설정','4']];
+  const items = [['month','월별','1'],['week','주간','2'],['today','오늘 할 일','3'],['notes','메모','5'],['settings','설정','4']];
   return `
   <div class="side-h"><button class="icon-btn" data-act="side-toggle" title="메뉴 접기/펼치기 ( [ )" aria-label="메뉴 접기/펼치기">${ICON.menu}</button><span class="brand">업무 캘린더</span></div>
   <button class="btn primary side-new" data-act="new-ev-here" title="새 일정 (N)">${ICON.plus}<span class="lbl">새 일정</span><kbd>N</kbd></button>
@@ -1000,6 +1033,12 @@ document.addEventListener('click', e => {
       break;
     case 'pill': ui.view = 'settings'; render(); break;
     case 'help': openHelp(); break;
+    case 'new-note': openNote(null); break;
+    case 'edit-note': openNote(id); break;
+    case 'save-note': saveNote(); break;
+    case 'del-note':
+      if (confirm('이 메모를 삭제할까요?')){ state.notes = state.notes.filter(n => n.id !== modal.draft.id); save(); closeModal(); render(); toast('메모를 삭제했어요'); }
+      break;
 
     /* 모달 */
     case 'backdrop': if (e.target === el) closeModal(); break;
@@ -1215,6 +1254,31 @@ function goView(v){
   }
   ui.view = v; scrollTop(); render();
 }
+function viewNotes(){
+  const notes = [...state.notes].sort((a,b) => (b.updatedAt||0) - (a.updatedAt||0));   // 최근 수정 먼저
+  const card = nt => `<article class="note-card" data-act="edit-note" data-id="${nt.id}">
+    <div class="note-card-h"><b>${esc(nt.title) || '(제목 없음)'}</b><span class="icon-btn" aria-hidden="true">${ICON.edit}</span></div>
+    <div class="note-body">${esc(nt.body) || '<span class="muted">내용 없음</span>'}</div></article>`;
+  return `
+  <header class="top"><div><div class="eyebrow">메모 · ${state.notes.length}개</div><h1>업무 메모</h1></div>
+    <button class="btn primary sm" data-act="new-note">+ 새 메모</button></header>
+  ${notes.length ? `<div class="notes-list">${notes.map(card).join('')}</div>`
+    : `<div class="empty">아직 메모가 없어요. 업무 절차나 메모를 자유롭게 적어두세요.<br><button class="btn primary sm" data-act="new-note">새 메모</button></div>`}`;
+}
+function openNote(id){
+  const nt = id && state.notes.find(n => n.id === id);
+  modal = { type:'note', isNew: !nt, draft: nt ? { ...nt } : { id:uid(), title:'', body:'' } };
+  pushModalState(); renderModal();
+  if (!nt) setTimeout(() => { const f = document.querySelector('[data-f="title"]'); f && f.focus(); }, 30);
+}
+function saveNote(){
+  const d = modal.draft;
+  if (!d.title.trim() && !d.body.trim()){ toast('제목이나 내용을 입력해 주세요'); return; }
+  const nt = { id:d.id, title:d.title.trim(), body:d.body };
+  const i = state.notes.findIndex(n => n.id === d.id);
+  if (i >= 0) state.notes[i] = nt; else state.notes.push(nt);
+  save(); closeModal(); render(); toast('메모를 저장했어요');
+}
 function openHelp(){ modal = { type:'help' }; pushModalState(); renderModal(); }
 function stepPeriod(dir){
   if (ui.view === 'week'){ ui.weekAnchor = ymd(addDays(parse(ui.weekAnchor), 7*dir)); render(); }
@@ -1248,6 +1312,7 @@ document.addEventListener('keydown', e => {
   const act = {
     Digit1:() => goView('month'), Digit2:() => goView('week'), Digit3:() => goView('today'), Digit4:() => goView('settings'),
     KeyM:() => goView('month'), KeyW:() => goView('week'), KeyT:() => goView('today'),
+    Digit5:() => goView('notes'),
     ArrowLeft:() => stepPeriod(-1), ArrowRight:() => stepPeriod(1),
     BracketLeft:() => toggleSide(),
     KeyN:() => openEvent(null, fabDate()),
@@ -1354,10 +1419,10 @@ async function rpc(fn, body){
 }
 
 const byId = (p, q) => p.id < q.id ? -1 : p.id > q.id ? 1 : 0;
-const syncPart = s => ({ events:[...s.events].sort(byId), templates:[...s.templates].sort(byId), deleted:s.deleted });
+const syncPart = s => ({ events:[...s.events].sort(byId), templates:[...s.templates].sort(byId), notes:[...s.notes].sort(byId), deleted:s.deleted });
 function canon(d){
   const del = {}; Object.keys(d.deleted).sort().forEach(k => del[k] = d.deleted[k]);
-  return JSON.stringify({ e:[...d.events].sort(byId), t:[...d.templates].sort(byId), d:del });
+  return JSON.stringify({ e:[...d.events].sort(byId), t:[...d.templates].sort(byId), n:[...d.notes].sort(byId), d:del });
 }
 function mergeData(a, b){
   const deleted = { ...a.deleted };
@@ -1369,7 +1434,7 @@ function mergeData(a, b){
     for (const it of [...x, ...y]){ const c = m.get(it.id); if (!c || (it.updatedAt||0) > (c.updatedAt||0)) m.set(it.id, it); }
     return [...m.values()].filter(it => !(deleted[it.id] != null && deleted[it.id] >= (it.updatedAt||0))).sort(byId);
   };
-  return { events: pick(a.events, b.events), templates: pick(a.templates, b.templates), deleted };
+  return { events: pick(a.events, b.events), templates: pick(a.templates, b.templates), notes: pick(a.notes, b.notes), deleted };
 }
 
 function scheduleSync(){
@@ -1391,11 +1456,11 @@ async function sync(manual){
       let merged = local, rdata = null;
       if (remote){
         const r = normalize(await decryptJSON(aes, remote.data));
-        rdata = { events:r.events, templates:r.templates, deleted:r.deleted };
+        rdata = { events:r.events, templates:r.templates, notes:r.notes, deleted:r.deleted };
         merged = mergeData(local, rdata);
       }
       if (canon(merged) !== canon(local)){                       // 다른 기기 변경분 반영
-        state.events = merged.events; state.templates = merged.templates; state.deleted = merged.deleted;
+        state.events = merged.events; state.templates = merged.templates; state.notes = merged.notes; state.deleted = merged.deleted;
         persist(); snapshot();
       }
       if (!rdata || canon(merged) !== canon(rdata)){             // 서버로 올릴 게 있으면 업로드
