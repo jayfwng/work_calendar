@@ -158,6 +158,10 @@ textarea.inp{min-height:70px;resize:vertical}
 .swatches{display:flex;gap:8px;flex-wrap:wrap}
 .sw{width:28px;height:28px;border-radius:50%;border:3px solid transparent;background:var(--c);cursor:pointer;padding:0}
 .sw.on{border-color:var(--text)}
+.sw{position:relative;display:inline-grid;place-items:center}
+.sw-add{background:var(--surface2);border:1px dashed var(--line);color:var(--muted);font-size:18px;font-weight:700;overflow:hidden}
+.sw-add input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;padding:0;border:0}
+.sw-del{position:absolute;top:-4px;right:-4px;width:15px;height:15px;border-radius:50%;background:var(--surface);border:1px solid var(--line);color:var(--text);font-size:11px;line-height:13px;display:grid;place-items:center}
 .le-row{display:flex;gap:4px;align-items:center;margin-bottom:6px}
 .le-row .inp{padding:7px 10px}
 .le-row .num{flex:none;width:20px;text-align:right;font-size:12px;color:var(--muted)}
@@ -369,7 +373,7 @@ function defaultState(){
       ]
     }],
     deleted:{},                 // 동기화용 삭제 기록 { id: 삭제시각 }
-    settings:{ weekStart:1, theme:'system' }
+    settings:{ weekStart:1, theme:'system', customColors:[] }
   };
 }
 function normalize(s){
@@ -396,7 +400,9 @@ function normalize(s){
       updatedAt:+nt.updatedAt||0
     })),
     deleted: (s.deleted && typeof s.deleted === 'object') ? { ...s.deleted } : {},
-    settings: { ...d.settings, ...(s.settings||{}) }
+    settings: (() => { const st = { ...d.settings, ...(s.settings||{}) };
+      st.customColors = Array.isArray(st.customColors) ? st.customColors.filter(c => /^#[0-9a-f]{6}$/i.test(c)).map(c=>c.toLowerCase()) : [];
+      return st; })()
   };
 }
 let storageOK = true;
@@ -701,7 +707,18 @@ function listEditor(kind, label, arr){
       <button class="icon-btn" data-act="le-add" data-kind="${kind}" aria-label="추가">${ICON.plus}</button></div></div>`;
 }
 function colorField(cur){
-  return `<div class="field"><div class="label">색상</div><div class="swatches">${COLORS.map(c => `<button class="sw ${c===cur?'on':''}" style="--c:${c}" data-act="color" data-v="${c}" aria-label="색상 ${c}"></button>`).join('')}</div></div>`;
+  const custom = (state.settings.customColors || []).filter(c => !COLORS.includes(c));
+  const all = [...COLORS, ...custom];
+  const sw = c => `<button class="sw ${c===cur?'on':''}" style="--c:${c}" data-act="color" data-v="${c}" aria-label="색상 ${c}">${custom.includes(c) ? `<span class="sw-del" data-act="color-del" data-v="${c}" title="이 색 삭제">×</span>` : ''}</button>`;
+  return `<div class="field"><div class="label">색상</div><div class="swatches">${all.map(sw).join('')}
+    <label class="sw sw-add" title="색 직접 고르기"><span>+</span><input type="color" data-color-add value="${/^#[0-9a-f]{6}$/i.test(cur)?cur:'#2f6fed'}"></label></div></div>`;
+}
+function addCustomColor(hex){
+  hex = (hex || '').toLowerCase();
+  if (!/^#[0-9a-f]{6}$/.test(hex) || !modal) return;
+  const cc = state.settings.customColors || (state.settings.customColors = []);
+  if (!COLORS.includes(hex) && !cc.includes(hex)){ cc.unshift(hex); if (cc.length > 16) cc.length = 16; persist(); }
+  modal.draft.color = hex; renderModal();
 }
 function renderModal(){
   const root = document.getElementById('sheet-root');
@@ -1137,6 +1154,12 @@ document.addEventListener('click', e => {
     case 'backdrop': if (e.target === el) closeModal(); break;
     case 'close': closeModal(); break;
     case 'color': modal.draft.color = el.dataset.v; renderModal(); break;
+    case 'color-del': {
+      e.stopPropagation();
+      state.settings.customColors = (state.settings.customColors||[]).filter(c => c !== el.dataset.v);
+      if (modal && modal.draft.color === el.dataset.v) modal.draft.color = COLORS[0];
+      persist(); renderModal(); break;
+    }
     case 'tpl-fav': modal.draft.fav = !modal.draft.fav; renderModal(); break;
     case 'wd-toggle': {
       const dr = modal.draft, v = Number(el.dataset.v);
@@ -1331,6 +1354,7 @@ document.addEventListener('input', e => {
 document.addEventListener('change', e => {
   if (!modal) return;
   const t = e.target;
+  if (t.dataset.colorAdd !== undefined){ addCustomColor(t.value); return; }
   if (t.matches('[data-tpl-select]')){
     if (t.value) applyTemplate(t.value, false); else modal.draft.templateId = '';
     renderModal();
