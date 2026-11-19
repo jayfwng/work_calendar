@@ -848,10 +848,10 @@ function renderModal(){
     <div class="keys">
       <h3>이동</h3>
       ${row(['1'], '월별')}${row(['2'], '주간')}${row(['3'], '오늘 할 일')}${row(['4'], '메모')}${row(['5'], '설정')}
-      ${row(['M'], '월별 (한 번 더 누르면 이번 달)')}${row(['W'], '주간 (한 번 더 누르면 이번 주)')}${row(['T'], '오늘 할 일')}
       ${row(['←','→'], '이전 / 다음 주·달')}${row(['['], '왼쪽 메뉴 접기 / 펼치기 (컴퓨터)')}
-      <h3>일정</h3>
+      <h3>만들기</h3>
       ${row(['N'], '새 일정 (보고 있는 날짜에)')}
+      ${row(['M'], '새 메모')}
       ${row(['P'], '템플릿 골라서 새 일정')}
       ${row([mod,'Enter'], '편집 창에서 저장')}${row([mod,'S'], '편집 창에서 저장')}
       ${row(['Esc'], '편집 창 닫기')}${row(['더블클릭'], '달력 날짜 → 빠른 추가 (예: 14:00 미팅)')}${row(['더블클릭'], '달력 속 일정 → 수정')}
@@ -1463,7 +1463,7 @@ document.addEventListener('keydown', e => {
   if (e.shiftKey) return;
   const act = {
     Digit1:() => goView('month'), Digit2:() => goView('week'), Digit3:() => goView('today'), Digit4:() => goView('notes'),
-    KeyM:() => goView('month'), KeyW:() => goView('week'), KeyT:() => goView('today'),
+    KeyM:() => openNote(null),       // 새 메모
     Digit5:() => goView('settings'),
     ArrowLeft:() => stepPeriod(-1), ArrowRight:() => stepPeriod(1),
     BracketLeft:() => toggleSide(),
