@@ -65,6 +65,10 @@ svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke-l
 .overall .bar i{background:var(--ok)}
 .sec-h{display:flex;justify-content:space-between;align-items:center;margin:22px 0 8px;font-size:14px;font-weight:700;color:var(--muted)}
 .sec-h.warn{color:var(--danger)}
+.overdue-h{width:100%;border:0;background:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:0;font:inherit}
+.overdue-h .od-right{display:inline-flex;align-items:center;gap:2px;font-size:13px}
+.overdue-h svg{width:16px;height:16px}
+.od-hint{font-size:12px;color:var(--muted);padding:2px 2px 4px}
 .empty{background:var(--surface);border:1px dashed var(--line);border-radius:12px;padding:18px;text-align:center;color:var(--muted);font-size:14px}
 .empty .btn{margin-top:10px}
 
@@ -438,6 +442,7 @@ const ui = {
   monthAnchor: todayStr().slice(0,7),
   selDate: todayStr(),
   expanded: new Set(),
+  overdueOpen: false,        // 밀린 업무 섹션 펼침 여부
   tplFilter: '',             // 설정 템플릿 분류 필터
 };
 let modal = null;             // { type:'event'|'template', isNew, draft }
@@ -512,6 +517,7 @@ function card(ev, opt = {}){
         <span class="card-meta">${esc(meta.join(' · '))}${tpl ? ` <span class="tag">${esc(tpl.name)}</span>` : ''}</span>
         ${p.total ? `<span class="bar"><i style="width:${p.pct}%"></i></span>` : ''}
       </button>
+      ${opt.overdue ? `<button class="btn sm" data-act="ev-today" data-id="${ev.id}" title="오늘 날짜로 옮기기">오늘로</button>` : ''}
       ${rk ? `<span class="ord"><button class="icon-btn" data-act="move" data-id="${ev.id}" data-dir="-1" aria-label="우선순위 올리기" title="위로">${ICON.up}</button><button class="icon-btn" data-act="move" data-id="${ev.id}" data-dir="1" aria-label="우선순위 내리기" title="아래로">${ICON.down}</button></span>` : ''}
       ${(p.total || ev.memo) ? `<button class="icon-btn" data-act="expand" data-id="${ev.id}" aria-label="체크리스트 ${open?'접기':'펼치기'}">${open?ICON.up:ICON.down}</button>` : ''}
     </div>
@@ -525,6 +531,13 @@ function sublist(ev, kind, label){
     arr.map(it => `<label class="sub-item ${it.done?'on':''}"><input type="checkbox" data-act="toggle-sub" data-id="${ev.id}" data-kind="${kind}" data-sub="${it.id}" ${it.done?'checked':''}><span>${esc(it.text)}</span></label>`).join('');
 }
 const list = (evs, opt) => evs.map(e => card(e, opt)).join('');
+function overdueSection(overdue){
+  if (!overdue.length) return '';
+  const open = ui.overdueOpen;
+  return `<button class="sec-h warn overdue-h" data-act="toggle-overdue" aria-expanded="${open}">
+      <span>밀린 업무 (지난 날짜)</span><span class="od-right">${overdue.length}개 ${open?ICON.up:ICON.down}</span></button>
+    ${open ? list(overdue, { showDate:true, overdue:true }) : '<div class="od-hint">펼쳐서 완료 체크하거나 “오늘로” 옮길 수 있어요</div>'}`;
+}
 
 /* ---------- 화면: 오늘 ---------- */
 function viewToday(){
@@ -546,7 +559,7 @@ function viewToday(){
   ${evs.length ? `<div class="overall"><div class="row"><span>오늘 진행률</span><span>${pct}%</span></div><span class="bar"><i style="width:${pct}%"></i></span></div>` : ''}
   <div class="sec-h"><span>오늘 일정</span></div>
   ${evs.length ? list(evs) : `<div class="empty">오늘 등록된 일정이 없어요.<br><button class="btn primary sm" data-act="new-ev" data-date="${t}">일정 추가</button></div>`}
-  ${overdue.length ? `<div class="sec-h warn"><span>밀린 업무 (지난 날짜, 미완료)</span></div>${list(overdue,{showDate:true})}` : ''}
+  ${overdueSection(overdue)}
   <div class="sec-h"><span>다가오는 7일</span></div>
   ${upcoming.length ? list(upcoming,{showDate:true}) : `<div class="empty">앞으로 7일간 일정이 없어요.</div>`}`;
 }
@@ -1025,7 +1038,7 @@ function viewTodo(){
     ${evs.length > 1 ? '<div class="todo-hint">끌어서 놓거나 ▲▼로 우선순위를 바꿀 수 있어요</div>' : ''}
     <div data-drop-list="${sd}">${evs.map((e, i) => card(e, { reorder: i + 1 })).join('')}</div>`
     : `<div class="empty">${isToday ? '오늘' : '이 날은'} 할 일이 없어요.<br><button class="btn primary sm" data-act="new-ev" data-date="${sd}">일정 추가</button></div>`}
-  ${overdue.length ? `<div class="sec-h warn"><span>밀린 업무</span><span>${overdue.length}</span></div>${list(overdue, { showDate:true })}` : ''}`;
+  ${overdueSection(overdue)}`;
 }
 function applyTheme(){
   const t = state.settings.theme;
@@ -1081,6 +1094,13 @@ document.addEventListener('click', e => {
       save(); render(); break;
     }
     case 'expand': ui.expanded.has(id) ? ui.expanded.delete(id) : ui.expanded.add(id); render(); break;
+    case 'toggle-overdue': ui.overdueOpen = !ui.overdueOpen; render(); break;
+    case 'ev-today': {
+      const evm = state.events.find(x => x.id === id); if (!evm) break;
+      evm.date = todayStr(); delete evm.order;
+      save(); render(); toast('오늘로 옮겼어요');
+      break;
+    }
     case 'edit-ev': openEvent(id); break;
     case 'new-ev': openEvent(null, el.dataset.date); break;
     case 'sel-date': {
