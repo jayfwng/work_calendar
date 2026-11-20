@@ -427,7 +427,7 @@ function defaultState(){
     }],
     notes:[{
       id:'note-bid', updatedAt:0, folderId:'fld-proc', title:'입찰 프로세스',
-      body:'1. 현장 설명회\n  - 현장설명서 첨부\n  - 참석 여부 체크\n2. 견적\n  - 업체가 시스템에 견적 입력 → 금액 검토 후 내부 공유\n3. 서류 준비\n  - 사업자등록증, 인감증명서 등\n4. 제출 / 개찰\n  - 마감 시간 전 제출\n  - 개찰 결과 확인\n\n[ ] 공고 확인 후 담당자 공유\n[ ] 마감 시간 재확인'
+      body:'입찰 프로세스\n1. 현장 설명회\n  - 현장설명서 첨부\n  - 참석 여부 체크\n2. 견적\n  - 업체가 시스템에 견적 입력 → 금액 검토 후 내부 공유\n3. 서류 준비\n  - 사업자등록증, 인감증명서 등\n4. 제출 / 개찰\n  - 마감 시간 전 제출\n  - 개찰 결과 확인\n\n[ ] 공고 확인 후 담당자 공유\n[ ] 마감 시간 재확인'
     }],
     folders:[{ id:'fld-proc', name:'업무 프로세스', parentId:'', updatedAt:0 }],
     deleted:{},                 // 동기화용 삭제 기록 { id: 삭제시각 }
@@ -862,21 +862,20 @@ function renderModal(){
   } else if (modal.type === 'note-view'){
     const nt = state.notes.find(n => n.id === modal.id) || { title:'', body:'', id:'' };
     body = `
-    <div class="sheet-h"><h2 class="v-title">${esc(nt.title) || '(제목 없음)'}</h2>
+    <div class="sheet-h"><h2 class="v-title">${esc(noteTitle(nt))}</h2>
       <div style="display:flex;gap:4px"><button class="btn sm" data-act="edit-note" data-id="${modal.id}">${ICON.edit} 편집</button><button class="icon-btn" data-act="close" aria-label="닫기">${ICON.x}</button></div></div>
     <div class="note-view">${noteCardFull(nt)}</div>`;
   } else if (modal.type === 'note'){
     const d = modal.draft;
     body = `
     <div class="sheet-h"><h2>${modal.isNew ? '새 메모' : '메모'}</h2><button class="icon-btn" data-act="close" aria-label="닫기">${ICON.x}</button></div>
-    <div class="field"><input class="inp note-title" data-f="title" value="${esc(d.title)}" placeholder="제목 (예: 입찰 프로세스)"></div>
     <div class="md-toolbar">
       <button class="btn sm" data-act="md-mark" data-k="num" title="번호 목록 (Ctrl+Shift+7)">1.</button>
       <button class="btn sm" data-act="md-mark" data-k="bul" title="글머리표 (Ctrl+Shift+8)">•</button>
       <button class="btn sm" data-act="md-mark" data-k="chk" title="체크박스 (Ctrl+Shift+9)">☐</button>
       <button class="btn sm" data-act="md-mark" data-k="h" title="제목">제목</button>
     </div>
-    <textarea class="inp note-area" data-f="body" placeholder="메모를 적으세요.&#10;목록 줄에서 Enter를 누르면 번호·글머리표가 이어져요.">${esc(d.body||'')}</textarea>
+    <textarea class="inp note-area note-body-ta" data-f="body" placeholder="첫 줄이 제목이 돼요.&#10;그 아래에 내용을 적으세요.">${esc(d.body||'')}</textarea>
     <div class="hint">Enter 목록 자동 이어쓰기 · Tab 들여쓰기 · Ctrl+Enter / Ctrl+S 저장</div>
     <div class="actions">
       ${modal.isNew ? '' : '<button class="btn danger" data-act="del-note">삭제</button>'}
@@ -1510,12 +1509,15 @@ function folderPath(fid){                                // "업무 > 하위" �
   while (cur && guard++ < 50){ names.unshift(cur.name); cur = cur.parentId ? folderById(cur.parentId) : null; }
   return names.join(' › ');
 }
-function noteCardFull(nt){ return `<div class="md-view">${renderNoteBody(nt.body, nt.id)}</div>`; }
+const stripMk = s => String(s).replace(/^\s*(#{1,3}\s|\d+\.\s|[-•]\s|\[[ xX]\]\s)/, '').trim();
+function noteTitle(nt){ return stripMk(String(nt.body||'').split('\n')[0] || '') || '(제목 없음)'; }
+function noteCardFull(nt){ return `<div class="md-view">${renderNoteBody(nt.body, nt.id, 1)}</div>`; }  // 1행은 제목이라 본문에서 제외
 // 본문 텍스트를 가볍게 서식화: 번호/글머리표/체크박스/제목/들여쓰기
-function renderNoteBody(body, noteId){
+function renderNoteBody(body, noteId, fromLine){
   const lines = String(body||'').split('\n');
   let html = '', any = false;
   lines.forEach((raw, idx) => {
+    if (idx < (fromLine||0)) return;
     const line = raw.replace(/\t/g, '  ');
     const pad = Math.min(line.match(/^ */)[0].length, 16) * 8;
     const t = line.trim(), style = `style="padding-left:${pad}px"`;
@@ -1553,7 +1555,7 @@ function folderTreeHtml(pid, depth){
 function noteRowHtml(n, depth){
   return `<div class="tree-row note-row ${ui.noteSel===n.id?'sel':''}" style="--d:${depth}">
     <span class="tw-chev"></span>
-    <button class="tw-main" data-act="open-note" data-id="${n.id}"><span class="tw-ic note">${ICON.notes}</span><span class="tw-name">${esc(n.title)||'(제목 없음)'}</span></button>
+    <button class="tw-main" data-act="open-note" data-id="${n.id}"><span class="tw-ic note">${ICON.notes}</span><span class="tw-name">${esc(noteTitle(n))}</span></button>
     <span class="tw-acts">
       <button class="icon-btn xs" data-act="edit-note" data-id="${n.id}" title="편집">${ICON.edit}</button>
       <button class="icon-btn xs" data-act="move-note" data-id="${n.id}" title="이동">${ICON.move}</button>
@@ -1580,7 +1582,7 @@ function trashPanel(){
   const tn = state.notes.filter(n => n.trashed).sort((a,b)=>(b.trashedAt||0)-(a.trashedAt||0));
   const row = (item, isFolder) => `<div class="tree-row trash-row">
     <span class="tw-ic">${isFolder?ICON.folder:ICON.notes}</span>
-    <span class="tw-name">${esc(item.name||item.title)||(isFolder?'(폴더)':'(제목 없음)')}</span>
+    <span class="tw-name">${esc(isFolder ? (item.name||'(폴더)') : noteTitle(item))}</span>
     <span class="tw-acts">
       <button class="icon-btn xs" data-act="${isFolder?'restore-folder':'restore-note'}" data-id="${item.id}" title="복원">${ICON.restore}</button>
       <button class="icon-btn xs danger" data-act="${isFolder?'purge-folder':'purge-note'}" data-id="${item.id}" title="완전 삭제">${ICON.x}</button>
@@ -1597,7 +1599,7 @@ function notesPane(){                                    // 컴퓨터 오른쪽 
   const sel = ui.noteSel && state.notes.find(n => n.id === ui.noteSel && !n.trashed);
   if (!sel) return `<div class="notes-pane empty-pane"><div class="empty">왼쪽에서 메모를 선택하세요.</div></div>`;
   return `<div class="notes-pane">
-    <div class="pane-head"><div><div class="eyebrow">${esc(folderPath(sel.folderId)) || '메모'}</div><h2>${esc(sel.title)||'(제목 없음)'}</h2></div>
+    <div class="pane-head"><div><div class="eyebrow">${esc(folderPath(sel.folderId)) || '메모'}</div><h2>${esc(noteTitle(sel))}</h2></div>
       <button class="btn sm" data-act="edit-note" data-id="${sel.id}">${ICON.edit} 편집</button></div>
     <div class="note-view">${noteCardFull(sel)}</div></div>`;
 }
@@ -1615,12 +1617,12 @@ function openNote(id, folderId){
   const nt = id && state.notes.find(n => n.id === id);
   modal = { type:'note', isNew: !nt, draft: nt ? JSON.parse(JSON.stringify(nt)) : { id:uid(), title:'', steps:[{ text:'', desc:'' }], memo:'', folderId: folderId || '' } };
   pushModalState(); renderModal();
-  if (!nt) setTimeout(() => { const f = document.querySelector('[data-f="title"]'); f && f.focus(); }, 30);
+  setTimeout(() => { const f = document.querySelector('[data-f="body"]'); if (f){ f.focus(); const L = f.value.length; f.setSelectionRange(L, L); } }, 30);
 }
 function saveNote(){
   const d = modal.draft;
-  if (!d.title.trim() && !(d.body||'').trim()){ toast('제목이나 내용을 입력해 주세요'); return; }
-  const nt = { id:d.id, title:d.title.trim(), body: d.body || '', folderId: d.folderId || '' };
+  if (!(d.body||'').trim()){ toast('내용을 입력해 주세요'); return; }
+  const nt = { id:d.id, title: noteTitle({ body:d.body }), body: d.body || '', folderId: d.folderId || '' };
   const i = state.notes.findIndex(n => n.id === d.id);
   if (i >= 0) state.notes[i] = nt; else state.notes.push(nt);
   ui.noteSel = nt.id;
