@@ -181,6 +181,46 @@ textarea.inp{min-height:70px;resize:vertical}
 .del-opt{justify-content:space-between;padding:12px 14px;font-size:15px}
 .del-opt[data-scope="all"]{color:var(--danger)}
 .notes-list{display:grid;gap:10px;grid-template-columns:1fr}
+/* 메모 워크스페이스 */
+.notes-root{display:flex;flex-direction:column;height:100%}
+.notes-tree{display:flex;flex-direction:column;min-height:0;flex:1}
+.tree-toolbar{display:flex;gap:6px;align-items:center;padding:0 0 10px}
+.tree-scroll{flex:1;min-height:0;overflow:auto}
+.tree-row{display:flex;align-items:center;gap:2px;border-radius:8px;padding-left:calc(var(--d,0) * 16px)}
+.tree-row:hover{background:var(--surface2)}
+.note-row.sel{background:var(--accent-weak)}
+.tw-chev{flex:none;width:24px;height:30px;border:0;background:none;color:var(--muted);display:grid;place-items:center;cursor:pointer;padding:0}
+.tw-chev svg{width:15px;height:15px}
+.tw-dot{width:5px;height:5px;border-radius:50%;background:var(--line)}
+.tw-main{flex:1;min-width:0;display:flex;align-items:center;gap:7px;border:0;background:none;cursor:pointer;padding:6px 4px;text-align:left;color:var(--text);font-size:14px}
+.tw-ic{flex:none;color:var(--muted);display:grid;place-items:center}
+.tw-ic svg{width:17px;height:17px}
+.tw-ic.note svg{width:15px;height:15px}
+.tw-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.folder-row .tw-name{font-weight:600}
+.tw-count{flex:none;font-size:11px;color:var(--muted);background:var(--surface2);border-radius:9px;padding:0 6px}
+.tw-acts{flex:none;display:flex;gap:0;opacity:0}
+.tree-row:hover .tw-acts,.trash-row .tw-acts{opacity:1}
+.icon-btn.xs{width:26px;height:26px}
+.icon-btn.xs svg{width:15px;height:15px}
+.icon-btn.danger{color:var(--danger)}
+.trash-row{padding:7px 4px;gap:8px}
+.trash-row .tw-name{flex:1}
+.move-list{display:flex;flex-direction:column;gap:4px;max-height:50vh;overflow:auto}
+.move-opt{justify-content:flex-start;text-align:left}
+.move-opt.on{border-color:var(--accent);color:var(--accent);font-weight:700}
+@media (hover:none){ .tw-acts{opacity:1} }   /* 터치 기기는 액션 항상 보이게 */
+@media (min-width:1024px){
+  .notes-root{flex-direction:row;gap:0;height:100%}
+  .notes-tree{flex:0 0 310px;border-right:1px solid var(--line);padding-right:12px}
+  .notes-pane{flex:1;min-width:0;overflow:auto;padding:0 4px 20px 22px}
+  .notes-pane.empty-pane{display:grid;place-items:center}
+  .pane-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin:0 0 10px}
+  .pane-head h2{font-size:22px;margin:2px 0 0;letter-spacing:-.01em}
+  :root[data-view="notes"] .shell{grid-template-columns:var(--sidew) minmax(0,1fr) 0}
+  :root[data-view="notes"] .todo{display:none}
+  :root[data-view="notes"] main{display:flex;flex-direction:column}
+}
 @media (min-width:640px){ .notes-list{grid-template-columns:1fr 1fr} }
 .note-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;box-shadow:var(--shadow);cursor:pointer;overflow:hidden}
 .note-card:hover{border-color:var(--accent)}
@@ -354,6 +394,11 @@ const ICON = {
   grip:'<svg viewBox="0 0 24 24"><circle cx="9" cy="6" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="18" r="1"/></svg>',
   menu:'<svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>',
   notes:'<svg viewBox="0 0 24 24"><path d="M5 3h11l3 3v15a0 0 0 0 1 0 0H5a0 0 0 0 1 0 0z"/><path d="M15 3v4h4M8 11h8M8 15h8M8 7h3"/></svg>',
+  folder:'<svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>',
+  folderPlus:'<svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M12 11v5M9.5 13.5h5"/></svg>',
+  trash:'<svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 13a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1l1-13M9 7V4h6v3"/></svg>',
+  restore:'<svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8m0-5v5h5"/></svg>',
+  move:'<svg viewBox="0 0 24 24"><path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l3 3 3-3M19 9l3 3-3 3M2 12h20M12 2v20"/></svg>',
   edit:'<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4z"/></svg>',
 };
 
@@ -368,7 +413,7 @@ function defaultState(){
       items:['사업자등록증 사본','입찰참가신청서','견적서','인감증명서','사용인감계','법인등기부등본']
     }],
     notes:[{
-      id:'note-bid', updatedAt:0, title:'입찰 프로세스', memo:'공고 확인 후 담당자에게 공유. 마감 시간 꼭 체크.',
+      id:'note-bid', updatedAt:0, folderId:'fld-proc', title:'입찰 프로세스', memo:'공고 확인 후 담당자에게 공유. 마감 시간 꼭 체크.',
       steps:[
         { text:'현장 설명회', desc:'현장설명서 첨부, 참석 여부 체크' },
         { text:'견적', desc:'업체가 시스템에 견적 입력 → 금액 검토 후 내부 공유' },
@@ -376,6 +421,7 @@ function defaultState(){
         { text:'제출 / 개찰', desc:'마감 시간 전 제출, 개찰 결과 확인' }
       ]
     }],
+    folders:[{ id:'fld-proc', name:'업무 프로세스', parentId:'', updatedAt:0 }],
     deleted:{},                 // 동기화용 삭제 기록 { id: 삭제시각 }
     settings:{ weekStart:1, theme:'system', customColors:[] }
   };
@@ -398,10 +444,14 @@ function normalize(s){
       tasks:(t.tasks||[]).map(String), items:(t.items||[]).map(String), updatedAt:+t.updatedAt||0
     })),
     notes: (Array.isArray(s.notes) ? s.notes : d.notes).map(nt => ({
-      id:nt.id||uid(), title:String(nt.title||''),
+      id:nt.id||uid(), title:String(nt.title||''), folderId:String(nt.folderId||''),
       steps:(Array.isArray(nt.steps)?nt.steps:[]).map(st => ({ text:String(st.text||''), desc:String(st.desc||'') })),
       memo:String(nt.memo != null ? nt.memo : (nt.body||'')),   // 예전 자유 메모(body)는 메모칸으로 이전
-      updatedAt:+nt.updatedAt||0
+      trashed:!!nt.trashed, trashedAt:+nt.trashedAt||0, updatedAt:+nt.updatedAt||0
+    })),
+    folders: (Array.isArray(s.folders) ? s.folders : (Array.isArray(s.notes) ? [] : d.folders)).map(f => ({
+      id:f.id||uid(), name:String(f.name||''), parentId:String(f.parentId||''),
+      trashed:!!f.trashed, trashedAt:+f.trashedAt||0, updatedAt:+f.updatedAt||0
     })),
     deleted: (s.deleted && typeof s.deleted === 'object') ? { ...s.deleted } : {},
     settings: (() => { const st = { ...d.settings, ...(s.settings||{}) };
@@ -422,10 +472,10 @@ function persist(){
 /* 바뀐 항목에 수정 시각을, 사라진 항목에 삭제 기록을 남긴다 (동기화 병합용) */
 const stripTs = o => { const { updatedAt, ...rest } = o; return JSON.stringify(rest); };
 let snap = new Map();
-function snapshot(){ snap = new Map(); for (const x of [...state.events, ...state.templates, ...state.notes]) snap.set(x.id, stripTs(x)); }
+function snapshot(){ snap = new Map(); for (const x of [...state.events, ...state.templates, ...state.notes, ...state.folders]) snap.set(x.id, stripTs(x)); }
 function stamp(){
   const now = Date.now(), seen = new Set();
-  for (const x of [...state.events, ...state.templates, ...state.notes]){
+  for (const x of [...state.events, ...state.templates, ...state.notes, ...state.folders]){
     seen.add(x.id);
     if (snap.get(x.id) !== stripTs(x)) x.updatedAt = now;
   }
@@ -444,6 +494,9 @@ const ui = {
   expanded: new Set(),
   overdueOpen: false,        // 밀린 업무 섹션 펼침 여부
   tplFilter: '',             // 설정 템플릿 분류 필터
+  folderOpen: new Set(['fld-proc']),   // 펼친 폴더
+  noteSel: '',               // 컴퓨터 화면에서 선택한 노트
+  notesTrash: false,         // 메모 탭 휴지통 보기
 };
 let modal = null;             // { type:'event'|'template', isNew, draft }
 
@@ -772,6 +825,23 @@ function renderModal(){
       <button class="btn" data-act="close">취소</button>
       <button class="btn primary" data-act="save-ev">저장</button>
     </div>`;
+  } else if (modal.type === 'folder'){
+    const d = modal.draft;
+    const where = d.parentId ? folderPath(d.parentId) : '최상위';
+    body = `
+    <div class="sheet-h"><h2>${modal.isNew ? '새 폴더' : '폴더 이름 변경'}</h2><button class="icon-btn" data-act="close" aria-label="닫기">${ICON.x}</button></div>
+    ${modal.isNew ? `<p class="hint" style="margin:2px 0 8px">위치: ${esc(where)}</p>` : ''}
+    <div class="field"><input class="inp" data-f="name" value="${esc(d.name)}" placeholder="폴더 이름 (예: 자재, 입찰)"></div>
+    <div class="actions"><span class="spacer"></span><button class="btn" data-act="close">취소</button><button class="btn primary" data-act="save-folder">저장</button></div>`;
+  } else if (modal.type === 'move'){
+    const note = state.notes.find(n => n.id === modal.noteId);
+    const cur = note ? (note.folderId||'') : '';
+    const opt = (fid, label, depth) => `<button class="btn move-opt ${fid===cur?'on':''}" data-act="move-to" data-folder="${fid}" style="padding-left:${12+depth*16}px">${esc(label)}${fid===cur?' ✓':''}</button>`;
+    const walk = (pid, depth) => childFolders(pid).map(f => opt(f.id, f.name, depth) + walk(f.id, depth+1)).join('');
+    body = `
+    <div class="sheet-h"><h2>폴더로 이동</h2><button class="icon-btn" data-act="close" aria-label="닫기">${ICON.x}</button></div>
+    <div class="move-list">${opt('', '최상위 (폴더 없음)', 0)}${walk('', 0)}</div>
+    <div class="actions"><span class="spacer"></span><button class="btn" data-act="close">닫기</button></div>`;
   } else if (modal.type === 'note-view'){
     const nt = state.notes.find(n => n.id === modal.id) || { title:'', steps:[], memo:'' };
     const steps = (nt.steps||[]).filter(st => st.text.trim() || st.desc.trim());
@@ -961,8 +1031,9 @@ function render(){
   document.getElementById('tabs').innerHTML = TABS.map(([v,l]) =>
     `<button class="${ui.view===v?'on':''}" data-act="tab" data-v="${v}" ${ui.view===v?'aria-current="page"':''}>${ICON[v]}<span>${l}</span></button>`).join('');
   const fab = document.getElementById('fab');
-  fab.style.display = ui.view === 'settings' ? 'none' : '';
+  fab.style.display = (ui.view === 'settings' || ui.view === 'notes') ? 'none' : '';
   fab.innerHTML = ICON.plus;
+  document.documentElement.dataset.view = ui.view;
   document.getElementById('side').innerHTML = viewSide();
   document.getElementById('todo').innerHTML = viewTodo();
   applyTheme();
@@ -1160,10 +1231,27 @@ document.addEventListener('click', e => {
       break;
     case 'pill': ui.view = 'settings'; render(); break;
     case 'help': openHelp(); break;
-    case 'new-note': openNote(null); break;
+    case 'new-note': openNote(null, el.dataset.folder || ''); break;
     case 'view-note': openNoteView(id); break;
     case 'edit-note': openNote(id); break;
+    case 'open-note':
+      if (isDesk()){ ui.noteSel = id; render(); } else openNoteView(id);
+      break;
     case 'save-note': saveNote(); break;
+    case 'folder-toggle': ui.folderOpen.has(id) ? ui.folderOpen.delete(id) : ui.folderOpen.add(id); render(); break;
+    case 'new-folder': openFolderEdit(null, el.dataset.parent || ''); break;
+    case 'rename-folder': openFolderEdit(id); break;
+    case 'save-folder': saveFolder(); break;
+    case 'trash-folder': trashFolder(id); break;
+    case 'trash-note': trashNote(id); break;
+    case 'move-note': openMove(id); break;
+    case 'move-to': { const n = state.notes.find(x=>x.id===modal.noteId); if(n){ n.folderId = el.dataset.folder; ui.noteSel=n.id; save(); } closeModal(); render(); toast('옮겼어요'); break; }
+    case 'notes-trash': ui.notesTrash = !ui.notesTrash; ui.noteSel=''; render(); break;
+    case 'restore-folder': restoreFolder(id); break;
+    case 'restore-note': restoreNote(id); break;
+    case 'purge-folder': purgeFolder(id); break;
+    case 'purge-note': purgeNote(id); break;
+    case 'empty-trash': emptyTrash(); break;
     case 'del-note':
       if (confirm('이 메모를 삭제할까요?')){ state.notes = state.notes.filter(n => n.id !== modal.draft.id); save(); closeModal(); render(); toast('메모를 삭제했어요'); }
       break;
@@ -1393,22 +1481,104 @@ function goView(v){
   }
   ui.view = v; scrollTop(); render();
 }
+/* ---------- 메모 워크스페이스 (폴더 트리 + 노트 + 휴지통) ---------- */
+const byName = (a,b) => (a.name||'').localeCompare(b.name||'') || (a.id<b.id?-1:1);
+const byTitle = (a,b) => (a.title||'').localeCompare(b.title||'') || (a.id<b.id?-1:1);
+const childFolders = pid => state.folders.filter(f => (f.parentId||'') === pid && !f.trashed).sort(byName);
+const folderNotes  = fid => state.notes.filter(n => (n.folderId||'') === fid && !n.trashed).sort(byTitle);
+const folderById   = id => state.folders.find(f => f.id === id);
+function descendantFolderIds(fid){                       // 하위 폴더 전체(휴지통 포함)
+  const out = []; const walk = pid => state.folders.filter(f => (f.parentId||'') === pid).forEach(f => { out.push(f.id); walk(f.id); });
+  walk(fid); return out;
+}
+function folderPath(fid){                                // "업무 > 하위" 경로
+  const names = []; let cur = folderById(fid), guard = 0;
+  while (cur && guard++ < 50){ names.unshift(cur.name); cur = cur.parentId ? folderById(cur.parentId) : null; }
+  return names.join(' › ');
+}
+function noteCardFull(nt){                               // 뷰어/패널 공용 읽기 렌더
+  const steps = (nt.steps||[]).filter(st => st.text.trim() || st.desc.trim());
+  const stepsHtml = steps.map((st, i) => `<div class="vstep"><span class="vstep-n">${i+1}</span><div class="vstep-b"><div class="vstep-t">${esc(st.text)}</div>${st.desc.trim() ? `<div class="vstep-d">${esc(st.desc)}</div>` : ''}</div></div>`).join('');
+  const memo = (nt.memo||'').trim();
+  return `${steps.length ? `<div class="v-sec-label">진행 단계</div><div class="vsteps">${stepsHtml}</div>` : ''}
+    ${memo ? `<div class="v-sec-label">메모</div><div class="vmemo">${esc(memo)}</div>` : ''}
+    ${!steps.length && !memo ? '<p class="hint">내용이 없어요. 편집을 눌러 작성하세요.</p>' : ''}`;
+}
+function folderTreeHtml(pid, depth){
+  let html = '';
+  for (const f of childFolders(pid)){
+    const open = ui.folderOpen.has(f.id);
+    const count = childFolders(f.id).length + folderNotes(f.id).length;
+    html += `<div class="tree-row folder-row ${ui.noteSel===''&&false?'':''}" style="--d:${depth}">
+      <button class="tw-chev" data-act="folder-toggle" data-id="${f.id}" aria-label="${open?'접기':'펼치기'}">${count?(open?ICON.down:ICON.right):'<span class=\"tw-dot\"></span>'}</button>
+      <button class="tw-main" data-act="folder-toggle" data-id="${f.id}"><span class="tw-ic">${ICON.folder}</span><span class="tw-name">${esc(f.name)||'(폴더)'}</span>${count?`<span class="tw-count">${count}</span>`:''}</button>
+      <span class="tw-acts">
+        <button class="icon-btn xs" data-act="new-note" data-folder="${f.id}" title="새 메모">${ICON.plus}</button>
+        <button class="icon-btn xs" data-act="new-folder" data-parent="${f.id}" title="하위 폴더">${ICON.folderPlus}</button>
+        <button class="icon-btn xs" data-act="rename-folder" data-id="${f.id}" title="이름 변경">${ICON.edit}</button>
+        <button class="icon-btn xs" data-act="trash-folder" data-id="${f.id}" title="휴지통으로">${ICON.trash}</button>
+      </span></div>`;
+    if (open){
+      html += folderTreeHtml(f.id, depth+1);
+      for (const n of folderNotes(f.id)) html += noteRowHtml(n, depth+1);
+    }
+  }
+  return html;
+}
+function noteRowHtml(n, depth){
+  return `<div class="tree-row note-row ${ui.noteSel===n.id?'sel':''}" style="--d:${depth}">
+    <span class="tw-chev"></span>
+    <button class="tw-main" data-act="open-note" data-id="${n.id}"><span class="tw-ic note">${ICON.notes}</span><span class="tw-name">${esc(n.title)||'(제목 없음)'}</span></button>
+    <span class="tw-acts">
+      <button class="icon-btn xs" data-act="edit-note" data-id="${n.id}" title="편집">${ICON.edit}</button>
+      <button class="icon-btn xs" data-act="move-note" data-id="${n.id}" title="이동">${ICON.move}</button>
+      <button class="icon-btn xs" data-act="trash-note" data-id="${n.id}" title="휴지통으로">${ICON.trash}</button>
+    </span></div>`;
+}
+function treePanel(){
+  const rootNotes = folderNotes('');
+  const empty = !childFolders('').length && !rootNotes.length;
+  return `<div class="notes-tree">
+    <div class="tree-toolbar">
+      <button class="btn sm primary" data-act="new-note" data-folder="">+ 메모</button>
+      <button class="btn sm" data-act="new-folder" data-parent="">+ 폴더</button>
+      <span class="spacer"></span>
+      <button class="btn sm ${ui.notesTrash?'primary':''}" data-act="notes-trash" title="휴지통">${ICON.trash}</button>
+    </div>
+    <div class="tree-scroll">
+      ${empty ? '<div class="empty" style="margin:8px">폴더나 메모를 만들어 시작하세요.</div>'
+        : folderTreeHtml('', 0) + rootNotes.map(n => noteRowHtml(n, 0)).join('')}
+    </div></div>`;
+}
+function trashPanel(){
+  const tf = state.folders.filter(f => f.trashed).sort((a,b)=>(b.trashedAt||0)-(a.trashedAt||0));
+  const tn = state.notes.filter(n => n.trashed).sort((a,b)=>(b.trashedAt||0)-(a.trashedAt||0));
+  const row = (item, isFolder) => `<div class="tree-row trash-row">
+    <span class="tw-ic">${isFolder?ICON.folder:ICON.notes}</span>
+    <span class="tw-name">${esc(item.name||item.title)||(isFolder?'(폴더)':'(제목 없음)')}</span>
+    <span class="tw-acts">
+      <button class="icon-btn xs" data-act="${isFolder?'restore-folder':'restore-note'}" data-id="${item.id}" title="복원">${ICON.restore}</button>
+      <button class="icon-btn xs danger" data-act="${isFolder?'purge-folder':'purge-note'}" data-id="${item.id}" title="완전 삭제">${ICON.x}</button>
+    </span></div>`;
+  return `<div class="notes-tree">
+    <div class="tree-toolbar"><button class="btn sm" data-act="notes-trash">← 메모로</button><span class="spacer"></span>
+      ${(tf.length||tn.length)?`<button class="btn sm danger" data-act="empty-trash">휴지통 비우기</button>`:''}</div>
+    <div class="tree-scroll">
+      ${(tf.length||tn.length) ? tf.map(f=>row(f,true)).join('') + tn.map(n=>row(n,false)).join('')
+        : '<div class="empty" style="margin:8px">휴지통이 비어 있어요.</div>'}
+    </div></div>`;
+}
+function notesPane(){                                    // 컴퓨터 오른쪽 내용 패널
+  const sel = ui.noteSel && state.notes.find(n => n.id === ui.noteSel && !n.trashed);
+  if (!sel) return `<div class="notes-pane empty-pane"><div class="empty">왼쪽에서 메모를 선택하세요.</div></div>`;
+  return `<div class="notes-pane">
+    <div class="pane-head"><div><div class="eyebrow">${esc(folderPath(sel.folderId)) || '메모'}</div><h2>${esc(sel.title)||'(제목 없음)'}</h2></div>
+      <button class="btn sm" data-act="edit-note" data-id="${sel.id}">${ICON.edit} 편집</button></div>
+    <div class="note-view">${noteCardFull(sel)}</div></div>`;
+}
 function viewNotes(){
-  const notes = [...state.notes].sort((a,b) => (b.updatedAt||0) - (a.updatedAt||0));   // 최근 수정 먼저
-  const card = nt => {
-    const steps = (nt.steps||[]).filter(st => st.text.trim() || st.desc.trim());
-    const stepsHtml = steps.map((st, i) => `<div class="nstep"><span class="nstep-n">${i+1}</span><div><div class="nstep-t">${esc(st.text) || ''}</div>${st.desc.trim() ? `<div class="nstep-d">${esc(st.desc)}</div>` : ''}</div></div>`).join('');
-    const memo = (nt.memo||'').trim();
-    const empty = !steps.length && !memo;
-    return `<article class="note-card" data-act="view-note" data-id="${nt.id}">
-      <div class="note-card-h"><b>${esc(nt.title) || '(제목 없음)'}</b><button class="icon-btn" data-act="edit-note" data-id="${nt.id}" title="편집" aria-label="편집">${ICON.edit}</button></div>
-      <div class="note-body">${empty ? '<span class="muted">내용 없음</span>' : stepsHtml + (memo ? `<div class="nmemo">${esc(memo)}</div>` : '')}</div></article>`;
-  };
-  return `
-  <header class="top"><div><div class="eyebrow">메모 · ${state.notes.length}개</div><h1>업무 메모</h1></div>
-    <button class="btn primary sm" data-act="new-note">+ 새 메모</button></header>
-  ${notes.length ? `<div class="notes-list">${notes.map(card).join('')}</div>`
-    : `<div class="empty">아직 메모가 없어요. 업무 절차나 메모를 자유롭게 적어두세요.<br><button class="btn primary sm" data-act="new-note">새 메모</button></div>`}`;
+  const panel = ui.notesTrash ? trashPanel() : treePanel();
+  return `<div class="notes-root">${panel}${isDesk() ? notesPane() : ''}</div>`;
 }
 function openNoteView(id){
   const nt = state.notes.find(n => n.id === id);
@@ -1416,9 +1586,9 @@ function openNoteView(id){
   modal = { type:'note-view', id };
   pushModalState(); renderModal();
 }
-function openNote(id){
+function openNote(id, folderId){
   const nt = id && state.notes.find(n => n.id === id);
-  modal = { type:'note', isNew: !nt, draft: nt ? JSON.parse(JSON.stringify(nt)) : { id:uid(), title:'', steps:[{ text:'', desc:'' }], memo:'' } };
+  modal = { type:'note', isNew: !nt, draft: nt ? JSON.parse(JSON.stringify(nt)) : { id:uid(), title:'', steps:[{ text:'', desc:'' }], memo:'', folderId: folderId || '' } };
   pushModalState(); renderModal();
   if (!nt) setTimeout(() => { const f = document.querySelector('[data-f="title"]'); f && f.focus(); }, 30);
 }
@@ -1426,10 +1596,53 @@ function saveNote(){
   const d = modal.draft;
   const steps = (d.steps||[]).map(st => ({ text:st.text.trim(), desc:st.desc.trim() })).filter(st => st.text || st.desc);
   if (!d.title.trim() && !steps.length && !(d.memo||'').trim()){ toast('제목이나 내용을 입력해 주세요'); return; }
-  const nt = { id:d.id, title:d.title.trim(), steps, memo:d.memo || '' };
+  const nt = { id:d.id, title:d.title.trim(), steps, memo:d.memo || '', folderId: d.folderId || '' };
   const i = state.notes.findIndex(n => n.id === d.id);
   if (i >= 0) state.notes[i] = nt; else state.notes.push(nt);
+  ui.noteSel = nt.id;
   save(); closeModal(); render(); toast('메모를 저장했어요');
+}
+/* 폴더 만들기/이름변경 */
+function openFolderEdit(id, parentId){
+  const f = id && folderById(id);
+  modal = { type:'folder', isNew:!f, draft: f ? { id:f.id, name:f.name, parentId:f.parentId } : { id:uid(), name:'', parentId: parentId || '' } };
+  pushModalState(); renderModal();
+  setTimeout(() => { const el = document.querySelector('[data-f="name"]'); el && el.focus(); }, 30);
+}
+function saveFolder(){
+  const d = modal.draft;
+  if (!d.name.trim()){ toast('폴더 이름을 입력해 주세요'); return; }
+  const f = { id:d.id, name:d.name.trim(), parentId:d.parentId||'', trashed:false, trashedAt:0 };
+  const i = state.folders.findIndex(x => x.id === d.id);
+  if (i >= 0) state.folders[i] = { ...state.folders[i], name:f.name }; else state.folders.push(f);
+  ui.folderOpen.add(d.parentId||'' ); ui.folderOpen.add(d.id);
+  save(); closeModal(); render(); toast('저장했어요');
+}
+/* 이동 대상 폴더 선택 */
+function openMove(noteId){
+  modal = { type:'move', noteId };
+  pushModalState(); renderModal();
+}
+/* 휴지통 동작 */
+function trashNote(id){ const n = state.notes.find(x=>x.id===id); if(!n)return; n.trashed=true; n.trashedAt=Date.now(); if(ui.noteSel===id)ui.noteSel=''; save(); render(); toast('휴지통으로 옮겼어요'); }
+function trashFolder(id){ const f = folderById(id); if(!f)return; f.trashed=true; f.trashedAt=Date.now(); save(); render(); toast('폴더를 휴지통으로 옮겼어요'); }
+function restoreNote(id){ const n = state.notes.find(x=>x.id===id); if(!n)return; n.trashed=false; if(!folderById(n.folderId)||folderById(n.folderId).trashed) n.folderId=''; save(); render(); toast('복원했어요'); }
+function restoreFolder(id){ const f = folderById(id); if(!f)return; f.trashed=false; if(f.parentId && (!folderById(f.parentId)||folderById(f.parentId).trashed)) f.parentId=''; save(); render(); toast('복원했어요'); }
+function purgeNote(id){ if(!confirm('이 메모를 완전히 삭제할까요? 되돌릴 수 없어요.'))return; state.notes=state.notes.filter(n=>n.id!==id); save(); render(); toast('삭제했어요'); }
+function purgeFolder(id){
+  if(!confirm('이 폴더와 그 안의 모든 하위 폴더·메모를 완전히 삭제할까요? 되돌릴 수 없어요.'))return;
+  const ids = new Set([id, ...descendantFolderIds(id)]);
+  state.notes = state.notes.filter(n => !ids.has(n.folderId||''));
+  state.folders = state.folders.filter(f => !ids.has(f.id));
+  save(); render(); toast('삭제했어요');
+}
+function emptyTrash(){
+  const tfs = state.folders.filter(f=>f.trashed);
+  if(!confirm('휴지통을 완전히 비울까요? 되돌릴 수 없어요.'))return;
+  const ids = new Set(); tfs.forEach(f => { ids.add(f.id); descendantFolderIds(f.id).forEach(x=>ids.add(x)); });
+  state.notes = state.notes.filter(n => !n.trashed && !ids.has(n.folderId||''));
+  state.folders = state.folders.filter(f => !f.trashed && !ids.has(f.id));
+  save(); render(); toast('휴지통을 비웠어요');
 }
 function openHelp(){ modal = { type:'help' }; pushModalState(); renderModal(); }
 function stepPeriod(dir){
@@ -1454,7 +1667,7 @@ document.addEventListener('keydown', e => {
   if (modal){
     if (mod && (e.key === 'Enter' || e.code === 'KeyS')){
       e.preventDefault();
-      if (modal.type === 'event') saveEvent(); else if (modal.type === 'template') saveTemplate(); else if (modal.type === 'note') saveNote();
+      if (modal.type === 'event') saveEvent(); else if (modal.type === 'template') saveTemplate(); else if (modal.type === 'note') saveNote(); else if (modal.type === 'folder') saveFolder();
     }
     return;
   }
@@ -1571,10 +1784,10 @@ async function rpc(fn, body){
 }
 
 const byId = (p, q) => p.id < q.id ? -1 : p.id > q.id ? 1 : 0;
-const syncPart = s => ({ events:[...s.events].sort(byId), templates:[...s.templates].sort(byId), notes:[...s.notes].sort(byId), deleted:s.deleted });
+const syncPart = s => ({ events:[...s.events].sort(byId), templates:[...s.templates].sort(byId), notes:[...s.notes].sort(byId), folders:[...s.folders].sort(byId), deleted:s.deleted });
 function canon(d){
   const del = {}; Object.keys(d.deleted).sort().forEach(k => del[k] = d.deleted[k]);
-  return JSON.stringify({ e:[...d.events].sort(byId), t:[...d.templates].sort(byId), n:[...d.notes].sort(byId), d:del });
+  return JSON.stringify({ e:[...d.events].sort(byId), t:[...d.templates].sort(byId), n:[...d.notes].sort(byId), f:[...d.folders].sort(byId), d:del });
 }
 function mergeData(a, b){
   const deleted = { ...a.deleted };
@@ -1586,7 +1799,7 @@ function mergeData(a, b){
     for (const it of [...x, ...y]){ const c = m.get(it.id); if (!c || (it.updatedAt||0) > (c.updatedAt||0)) m.set(it.id, it); }
     return [...m.values()].filter(it => !(deleted[it.id] != null && deleted[it.id] >= (it.updatedAt||0))).sort(byId);
   };
-  return { events: pick(a.events, b.events), templates: pick(a.templates, b.templates), notes: pick(a.notes, b.notes), deleted };
+  return { events: pick(a.events, b.events), templates: pick(a.templates, b.templates), notes: pick(a.notes, b.notes), folders: pick(a.folders, b.folders), deleted };
 }
 
 function scheduleSync(){
@@ -1608,11 +1821,11 @@ async function sync(manual){
       let merged = local, rdata = null;
       if (remote){
         const r = normalize(await decryptJSON(aes, remote.data));
-        rdata = { events:r.events, templates:r.templates, notes:r.notes, deleted:r.deleted };
+        rdata = { events:r.events, templates:r.templates, notes:r.notes, folders:r.folders, deleted:r.deleted };
         merged = mergeData(local, rdata);
       }
       if (canon(merged) !== canon(local)){                       // 다른 기기 변경분 반영
-        state.events = merged.events; state.templates = merged.templates; state.notes = merged.notes; state.deleted = merged.deleted;
+        state.events = merged.events; state.templates = merged.templates; state.notes = merged.notes; state.folders = merged.folders; state.deleted = merged.deleted;
         persist(); snapshot();
       }
       if (!rdata || canon(merged) !== canon(rdata)){             // 서버로 올릴 게 있으면 업로드
