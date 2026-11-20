@@ -231,7 +231,20 @@ textarea.inp{min-height:70px;resize:vertical}
   -webkit-mask-image:linear-gradient(180deg,#000 72%,transparent);mask-image:linear-gradient(180deg,#000 72%,transparent)}
 .note-body .muted{opacity:.7}
 .note-title{font-size:17px;font-weight:700}
-textarea.note-area{min-height:300px;line-height:1.55;white-space:pre;overflow-wrap:normal;overflow:auto;font-size:14px;tab-size:2}
+textarea.note-area{min-height:300px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere;overflow:auto;font-size:14.5px;tab-size:2}
+.md-toolbar{display:flex;gap:6px;margin:0 0 8px}
+.md-toolbar .btn{min-width:38px}
+.md-view{font-size:14.5px;line-height:1.6}
+.md-view .md-blank{height:8px}
+.md-view .md-p{white-space:pre-wrap;overflow-wrap:anywhere}
+.md-view .md-h{font-weight:700;margin:10px 0 2px}
+.md-view .md-h.h1{font-size:18px}.md-view .md-h.h2{font-size:16px}.md-view .md-h.h3{font-size:15px}
+.md-view .md-li{display:flex;gap:7px;align-items:flex-start;padding:1px 0}
+.md-view .md-mk{flex:none;color:var(--muted);min-width:16px}
+.md-view .md-mk.num{color:var(--accent);font-weight:600}
+.md-chk{display:flex;gap:8px;align-items:flex-start;padding:2px 0;cursor:pointer}
+.md-chk input{margin:2px 0 0;width:17px;height:17px;accent-color:var(--ok);cursor:pointer;flex:none}
+.md-chk.on span{text-decoration:line-through;color:var(--muted)}
 textarea.note-area{min-height:110px}
 .note-body{display:block}
 .nstep{display:flex;gap:8px;margin:4px 0}
@@ -413,18 +426,23 @@ function defaultState(){
       items:['사업자등록증 사본','입찰참가신청서','견적서','인감증명서','사용인감계','법인등기부등본']
     }],
     notes:[{
-      id:'note-bid', updatedAt:0, folderId:'fld-proc', title:'입찰 프로세스', memo:'공고 확인 후 담당자에게 공유. 마감 시간 꼭 체크.',
-      steps:[
-        { text:'현장 설명회', desc:'현장설명서 첨부, 참석 여부 체크' },
-        { text:'견적', desc:'업체가 시스템에 견적 입력 → 금액 검토 후 내부 공유' },
-        { text:'서류 준비', desc:'사업자등록증, 인감증명서 등' },
-        { text:'제출 / 개찰', desc:'마감 시간 전 제출, 개찰 결과 확인' }
-      ]
+      id:'note-bid', updatedAt:0, folderId:'fld-proc', title:'입찰 프로세스',
+      body:'1. 현장 설명회\n  - 현장설명서 첨부\n  - 참석 여부 체크\n2. 견적\n  - 업체가 시스템에 견적 입력 → 금액 검토 후 내부 공유\n3. 서류 준비\n  - 사업자등록증, 인감증명서 등\n4. 제출 / 개찰\n  - 마감 시간 전 제출\n  - 개찰 결과 확인\n\n[ ] 공고 확인 후 담당자 공유\n[ ] 마감 시간 재확인'
     }],
     folders:[{ id:'fld-proc', name:'업무 프로세스', parentId:'', updatedAt:0 }],
     deleted:{},                 // 동기화용 삭제 기록 { id: 삭제시각 }
     settings:{ weekStart:1, theme:'system', customColors:[] }
   };
+}
+function legacyNoteBody(nt){   // {steps:[{text,desc}], memo} 형태를 본문 텍스트로 변환
+  const lines = [];
+  (Array.isArray(nt.steps) ? nt.steps : []).forEach((st, i) => {
+    const t = String(st.text||'').trim(), d = String(st.desc||'').trim();
+    if (t || d){ lines.push(`${i+1}. ${t}`); if (d) lines.push(`  - ${d}`); }
+  });
+  const memo = String(nt.memo||'').trim();
+  if (memo){ if (lines.length) lines.push(''); lines.push(memo); }
+  return lines.join('\n');
 }
 function normalize(s){
   const d = defaultState();
@@ -445,8 +463,7 @@ function normalize(s){
     })),
     notes: (Array.isArray(s.notes) ? s.notes : d.notes).map(nt => ({
       id:nt.id||uid(), title:String(nt.title||''), folderId:String(nt.folderId||''),
-      steps:(Array.isArray(nt.steps)?nt.steps:[]).map(st => ({ text:String(st.text||''), desc:String(st.desc||'') })),
-      memo:String(nt.memo != null ? nt.memo : (nt.body||'')),   // 예전 자유 메모(body)는 메모칸으로 이전
+      body: typeof nt.body === 'string' ? nt.body : legacyNoteBody(nt),   // 예전 단계/메모는 본문 텍스트로 이전
       trashed:!!nt.trashed, trashedAt:+nt.trashedAt||0, updatedAt:+nt.updatedAt||0
     })),
     folders: (Array.isArray(s.folders) ? s.folders : (Array.isArray(s.notes) ? [] : d.folders)).map(f => ({
@@ -843,33 +860,24 @@ function renderModal(){
     <div class="move-list">${opt('', '최상위 (폴더 없음)', 0)}${walk('', 0)}</div>
     <div class="actions"><span class="spacer"></span><button class="btn" data-act="close">닫기</button></div>`;
   } else if (modal.type === 'note-view'){
-    const nt = state.notes.find(n => n.id === modal.id) || { title:'', steps:[], memo:'' };
-    const steps = (nt.steps||[]).filter(st => st.text.trim() || st.desc.trim());
-    const stepsHtml = steps.map((st, i) => `<div class="vstep"><span class="vstep-n">${i+1}</span><div class="vstep-b"><div class="vstep-t">${esc(st.text)}</div>${st.desc.trim() ? `<div class="vstep-d">${esc(st.desc)}</div>` : ''}</div></div>`).join('');
-    const memo = (nt.memo||'').trim();
+    const nt = state.notes.find(n => n.id === modal.id) || { title:'', body:'', id:'' };
     body = `
     <div class="sheet-h"><h2 class="v-title">${esc(nt.title) || '(제목 없음)'}</h2>
       <div style="display:flex;gap:4px"><button class="btn sm" data-act="edit-note" data-id="${modal.id}">${ICON.edit} 편집</button><button class="icon-btn" data-act="close" aria-label="닫기">${ICON.x}</button></div></div>
-    <div class="note-view">
-      ${steps.length ? `<div class="v-sec-label">진행 단계</div><div class="vsteps">${stepsHtml}</div>` : ''}
-      ${memo ? `<div class="v-sec-label">메모</div><div class="vmemo">${esc(memo)}</div>` : ''}
-      ${!steps.length && !memo ? '<p class="hint">내용이 없어요. 편집을 눌러 작성하세요.</p>' : ''}
-    </div>`;
+    <div class="note-view">${noteCardFull(nt)}</div>`;
   } else if (modal.type === 'note'){
     const d = modal.draft;
-    const stepRows = (d.steps||[]).map((st, i) => `<div class="nstep-edit"><span class="nstep-n">${i+1}</span>
-      <div class="nstep-ins">
-        <input class="inp" data-nstep="text" data-i="${i}" value="${esc(st.text)}" placeholder="단계 이름 (예: 현장 설명회)">
-        <input class="inp nstep-desc-in" data-nstep="desc" data-i="${i}" value="${esc(st.desc)}" placeholder="간단한 설명">
-      </div>
-      <button class="icon-btn" data-act="nstep-del" data-i="${i}" aria-label="단계 삭제">${ICON.x}</button></div>`).join('');
     body = `
     <div class="sheet-h"><h2>${modal.isNew ? '새 메모' : '메모'}</h2><button class="icon-btn" data-act="close" aria-label="닫기">${ICON.x}</button></div>
-    <div class="field"><div class="label">업무 프로세스명</div><input class="inp note-title" data-f="title" value="${esc(d.title)}" placeholder="예: 입찰 프로세스"></div>
-    <div class="field"><div class="label"><span>단계</span><span>${(d.steps||[]).length}개</span></div>
-      ${stepRows}
-      <button class="btn sm" data-act="nstep-add" style="margin-top:4px">${ICON.plus} 단계 추가</button></div>
-    <div class="field"><div class="label">메모</div><textarea class="inp note-area" data-f="memo" placeholder="자유 메모 (줄바꿈 그대로 보여요)">${esc(d.memo)}</textarea><div class="hint">Ctrl+Enter 또는 Ctrl+S 로 저장</div></div>
+    <div class="field"><input class="inp note-title" data-f="title" value="${esc(d.title)}" placeholder="제목 (예: 입찰 프로세스)"></div>
+    <div class="md-toolbar">
+      <button class="btn sm" data-act="md-mark" data-k="num" title="번호 목록 (Ctrl+Shift+7)">1.</button>
+      <button class="btn sm" data-act="md-mark" data-k="bul" title="글머리표 (Ctrl+Shift+8)">•</button>
+      <button class="btn sm" data-act="md-mark" data-k="chk" title="체크박스 (Ctrl+Shift+9)">☐</button>
+      <button class="btn sm" data-act="md-mark" data-k="h" title="제목">제목</button>
+    </div>
+    <textarea class="inp note-area" data-f="body" placeholder="메모를 적으세요.&#10;목록 줄에서 Enter를 누르면 번호·글머리표가 이어져요.">${esc(d.body||'')}</textarea>
+    <div class="hint">Enter 목록 자동 이어쓰기 · Tab 들여쓰기 · Ctrl+Enter / Ctrl+S 저장</div>
     <div class="actions">
       ${modal.isNew ? '' : '<button class="btn danger" data-act="del-note">삭제</button>'}
       <span class="spacer"></span>
@@ -1255,8 +1263,14 @@ document.addEventListener('click', e => {
     case 'del-note':
       if (confirm('이 메모를 삭제할까요?')){ state.notes = state.notes.filter(n => n.id !== modal.draft.id); save(); closeModal(); render(); toast('메모를 삭제했어요'); }
       break;
-    case 'nstep-add': modal.draft.steps.push({ text:'', desc:'' }); renderModal(); setTimeout(() => { const r = document.querySelectorAll('[data-nstep="text"]'); const last = r[r.length-1]; last && last.focus(); }, 20); break;
-    case 'nstep-del': modal.draft.steps.splice(Number(el.dataset.i), 1); if (!modal.draft.steps.length) modal.draft.steps.push({ text:'', desc:'' }); renderModal(); break;
+    case 'md-mark': mdMark(el.dataset.k); break;
+    case 'note-chk': {
+      const n = state.notes.find(x => x.id === id); if (!n) break;
+      const lines = String(n.body||'').split('\n'); const i = Number(el.dataset.line);
+      if (lines[i] != null){ lines[i] = lines[i].replace(/\[([ xX])\]/, (mm, c) => c === ' ' ? '[x]' : '[ ]'); n.body = lines.join('\n'); save(); }
+      if (modal && modal.type === 'note-view') renderModal(); else render();
+      break;
+    }
 
     /* 모달 */
     case 'backdrop': if (e.target === el) closeModal(); break;
@@ -1496,13 +1510,24 @@ function folderPath(fid){                                // "업무 > 하위" �
   while (cur && guard++ < 50){ names.unshift(cur.name); cur = cur.parentId ? folderById(cur.parentId) : null; }
   return names.join(' › ');
 }
-function noteCardFull(nt){                               // 뷰어/패널 공용 읽기 렌더
-  const steps = (nt.steps||[]).filter(st => st.text.trim() || st.desc.trim());
-  const stepsHtml = steps.map((st, i) => `<div class="vstep"><span class="vstep-n">${i+1}</span><div class="vstep-b"><div class="vstep-t">${esc(st.text)}</div>${st.desc.trim() ? `<div class="vstep-d">${esc(st.desc)}</div>` : ''}</div></div>`).join('');
-  const memo = (nt.memo||'').trim();
-  return `${steps.length ? `<div class="v-sec-label">진행 단계</div><div class="vsteps">${stepsHtml}</div>` : ''}
-    ${memo ? `<div class="v-sec-label">메모</div><div class="vmemo">${esc(memo)}</div>` : ''}
-    ${!steps.length && !memo ? '<p class="hint">내용이 없어요. 편집을 눌러 작성하세요.</p>' : ''}`;
+function noteCardFull(nt){ return `<div class="md-view">${renderNoteBody(nt.body, nt.id)}</div>`; }
+// 본문 텍스트를 가볍게 서식화: 번호/글머리표/체크박스/제목/들여쓰기
+function renderNoteBody(body, noteId){
+  const lines = String(body||'').split('\n');
+  let html = '', any = false;
+  lines.forEach((raw, idx) => {
+    const line = raw.replace(/\t/g, '  ');
+    const pad = Math.min(line.match(/^ */)[0].length, 16) * 8;
+    const t = line.trim(), style = `style="padding-left:${pad}px"`;
+    if (!t){ html += '<div class="md-blank"></div>'; return; }
+    any = true; let m;
+    if (m = t.match(/^(#{1,3})\s+(.*)$/)){ html += `<div class="md-h h${m[1].length}" ${style}>${esc(m[2])}</div>`; return; }
+    if (m = t.match(/^\[([ xX])\]\s+(.*)$/)){ const on = m[1] !== ' '; html += `<label class="md-chk ${on?'on':''}" ${style}><input type="checkbox" ${on?'checked':''} data-act="note-chk" data-id="${noteId}" data-line="${idx}"><span>${esc(m[2])}</span></label>`; return; }
+    if (m = t.match(/^(\d+)\.\s+(.*)$/)){ html += `<div class="md-li" ${style}><span class="md-mk num">${m[1]}.</span><span>${esc(m[2])}</span></div>`; return; }
+    if (m = t.match(/^[-•]\s+(.*)$/)){ html += `<div class="md-li" ${style}><span class="md-mk">•</span><span>${esc(m[1])}</span></div>`; return; }
+    html += `<div class="md-p" ${style}>${esc(t)}</div>`;
+  });
+  return any ? html : '<p class="hint">내용이 없어요. 편집을 눌러 작성하세요.</p>';
 }
 function folderTreeHtml(pid, depth){
   let html = '';
@@ -1594,13 +1619,58 @@ function openNote(id, folderId){
 }
 function saveNote(){
   const d = modal.draft;
-  const steps = (d.steps||[]).map(st => ({ text:st.text.trim(), desc:st.desc.trim() })).filter(st => st.text || st.desc);
-  if (!d.title.trim() && !steps.length && !(d.memo||'').trim()){ toast('제목이나 내용을 입력해 주세요'); return; }
-  const nt = { id:d.id, title:d.title.trim(), steps, memo:d.memo || '', folderId: d.folderId || '' };
+  if (!d.title.trim() && !(d.body||'').trim()){ toast('제목이나 내용을 입력해 주세요'); return; }
+  const nt = { id:d.id, title:d.title.trim(), body: d.body || '', folderId: d.folderId || '' };
   const i = state.notes.findIndex(n => n.id === d.id);
   if (i >= 0) state.notes[i] = nt; else state.notes.push(nt);
   ui.noteSel = nt.id;
   save(); closeModal(); render(); toast('메모를 저장했어요');
+}
+/* 본문 편집 도우미 */
+function mdMark(kind){
+  const ta = document.querySelector('[data-f="body"]'); if (!ta || !modal) return;
+  const { selectionStart:ss, selectionEnd:se, value } = ta;
+  const lineStart = value.lastIndexOf('\n', ss-1) + 1;
+  let lineEnd = value.indexOf('\n', se); if (lineEnd < 0) lineEnd = value.length;
+  let num = 1;
+  const out = value.slice(lineStart, lineEnd).split('\n').map(l => {
+    const indent = l.match(/^ */)[0];
+    const rest = l.slice(indent.length).replace(/^(\d+\.\s|[-•]\s|\[[ xX]\]\s|#{1,3}\s)/, '');
+    const mk = kind==='num' ? (num++)+'. ' : kind==='bul' ? '- ' : kind==='chk' ? '[ ] ' : '# ';
+    return indent + mk + rest;
+  }).join('\n');
+  const nv = value.slice(0, lineStart) + out + value.slice(lineEnd);
+  ta.value = nv; modal.draft.body = nv; ta.focus();
+  if (ss === se){ const c = lineStart + out.length; ta.setSelectionRange(c, c); }   // 한 줄이면 커서를 끝에
+  else ta.setSelectionRange(lineStart, lineStart + out.length);                      // 여러 줄이면 블록 선택
+}
+function smartEnter(ta){
+  if (ta.selectionStart !== ta.selectionEnd) return false;
+  const ss = ta.selectionStart, value = ta.value;
+  const lineStart = value.lastIndexOf('\n', ss-1) + 1;
+  const line = value.slice(lineStart, ss);
+  const m = line.match(/^(\s*)(\d+)\.\s(.*)$/) || line.match(/^(\s*)([-•])\s(.*)$/) || line.match(/^(\s*)(\[[ xX]\])\s(.*)$/);
+  if (!m) return false;
+  const indent = m[1], content = m[3];
+  if (!content.trim()){                                    // 빈 항목에서 Enter → 목록 종료
+    const nv = value.slice(0, lineStart) + indent + value.slice(ss);
+    ta.value = nv; const c = lineStart + indent.length; ta.setSelectionRange(c, c); modal.draft.body = nv; return true;
+  }
+  const mk = /^\d+$/.test(m[2]) ? (parseInt(m[2],10)+1) + '. ' : (m[2]==='-'||m[2]==='•') ? m[2] + ' ' : '[ ] ';
+  const ins = '\n' + indent + mk;
+  const nv = value.slice(0, ss) + ins + value.slice(ss);
+  ta.value = nv; const c = ss + ins.length; ta.setSelectionRange(c, c); modal.draft.body = nv; return true;
+}
+function indentBody(ta, outdent){
+  const { selectionStart:ss, selectionEnd:se, value } = ta;
+  const lineStart = value.lastIndexOf('\n', ss-1) + 1;
+  let lineEnd = value.indexOf('\n', se); if (lineEnd < 0) lineEnd = value.length;
+  const out = value.slice(lineStart, lineEnd).split('\n').map(l => {
+    if (outdent){ const rm = l.match(/^ {1,2}/); return rm ? l.slice(rm[0].length) : l; }
+    return '  ' + l;
+  }).join('\n');
+  const nv = value.slice(0, lineStart) + out + value.slice(lineEnd);
+  ta.value = nv; modal.draft.body = nv; ta.setSelectionRange(lineStart, lineStart + out.length);
 }
 /* 폴더 만들기/이름변경 */
 function openFolderEdit(id, parentId){
@@ -1665,6 +1735,10 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.isComposing && t.dataset && t.dataset.leNew){ e.preventDefault(); addListItem(t.dataset.leNew, t.value); return; }
   const mod = e.ctrlKey || e.metaKey;
   if (modal){
+    const inBody = modal.type === 'note' && t.dataset && t.dataset.f === 'body';
+    if (inBody && e.key === 'Tab'){ e.preventDefault(); indentBody(t, e.shiftKey); return; }
+    if (inBody && e.key === 'Enter' && !mod && !e.isComposing){ if (smartEnter(t)){ e.preventDefault(); } return; }
+    if (inBody && mod && e.shiftKey && (e.code === 'Digit7' || e.code === 'Digit8' || e.code === 'Digit9')){ e.preventDefault(); mdMark(e.code === 'Digit7' ? 'num' : e.code === 'Digit8' ? 'bul' : 'chk'); return; }
     if (mod && (e.key === 'Enter' || e.code === 'KeyS')){
       e.preventDefault();
       if (modal.type === 'event') saveEvent(); else if (modal.type === 'template') saveTemplate(); else if (modal.type === 'note') saveNote(); else if (modal.type === 'folder') saveFolder();
