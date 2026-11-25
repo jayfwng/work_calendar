@@ -189,6 +189,14 @@ textarea.inp{min-height:70px;resize:vertical}
 .tree-row{display:flex;align-items:center;gap:2px;border-radius:8px;padding-left:calc(var(--d,0) * 16px)}
 .tree-row:hover{background:var(--surface2)}
 .note-row.sel{background:var(--accent-weak)}
+.tree-row[draggable=true]{cursor:default}
+.tw-grip{cursor:grab;opacity:0}
+.note-row:hover .tw-grip{opacity:.5}
+.tree-row.dragging{opacity:.4}
+.tree-row.drop-into{background:color-mix(in srgb,var(--accent) 16%,transparent);outline:1.5px dashed var(--accent);outline-offset:-2px;border-radius:8px}
+.tree-row.drop-before{box-shadow:inset 0 2px 0 0 var(--accent)}
+.tree-row.drop-after{box-shadow:inset 0 -2px 0 0 var(--accent)}
+.tree-scroll.drop-root{outline:1.5px dashed var(--line);outline-offset:-4px;border-radius:10px}
 .tw-chev{flex:none;width:24px;height:30px;border:0;background:none;color:var(--muted);display:grid;place-items:center;cursor:pointer;padding:0}
 .tw-chev svg{width:15px;height:15px}
 .tw-dot{width:5px;height:5px;border-radius:50%;background:var(--line)}
@@ -466,11 +474,13 @@ function normalize(s){
     notes: (Array.isArray(s.notes) ? s.notes : d.notes).map(nt => ({
       id:nt.id||uid(), title:String(nt.title||''), folderId:String(nt.folderId||''),
       body: typeof nt.body === 'string' ? nt.body : legacyNoteBody(nt),   // 예전 단계/메모는 본문 텍스트로 이전
-      trashed:!!nt.trashed, trashedAt:+nt.trashedAt||0, updatedAt:+nt.updatedAt||0
+      trashed:!!nt.trashed, trashedAt:+nt.trashedAt||0, updatedAt:+nt.updatedAt||0,
+      ...(Number.isFinite(nt.order) ? { order:nt.order } : {})
     })),
     folders: (Array.isArray(s.folders) ? s.folders : (Array.isArray(s.notes) ? [] : d.folders)).map(f => ({
       id:f.id||uid(), name:String(f.name||''), parentId:String(f.parentId||''),
-      trashed:!!f.trashed, trashedAt:+f.trashedAt||0, updatedAt:+f.updatedAt||0
+      trashed:!!f.trashed, trashedAt:+f.trashedAt||0, updatedAt:+f.updatedAt||0,
+      ...(Number.isFinite(f.order) ? { order:f.order } : {})
     })),
     deleted: (s.deleted && typeof s.deleted === 'object') ? { ...s.deleted } : {},
     settings: (() => { const st = { ...d.settings, ...(s.settings||{}) };
@@ -1383,6 +1393,61 @@ document.addEventListener('drop', e => {
   reorderDay(date, id, to);
 });
 document.addEventListener('dragend', () => { dragId = null; clearDrop(); document.querySelectorAll('.dragging').forEach(x => x.classList.remove('dragging')); });
+
+/* ---------- 메모 트리 드래그: 폴더로 이동 / 순서 바꾸기 ---------- */
+let ndrag = null;
+function clearTreeDrop(){ document.querySelectorAll('.drop-into,.drop-before,.drop-after,.drop-root').forEach(x => x.classList.remove('drop-into','drop-before','drop-after','drop-root')); }
+document.addEventListener('dragstart', e => {
+  const r = e.target.closest && e.target.closest('[data-ndrag]');
+  if (!r) return;
+  ndrag = r.dataset.ndrag; r.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', ndrag); } catch(x){}
+});
+document.addEventListener('dragover', e => {
+  if (!ndrag) return;
+  const row = e.target.closest && e.target.closest('.folder-row, .note-row');
+  const scroll = e.target.closest && e.target.closest('.tree-scroll');
+  if (!row && !scroll) return;
+  e.preventDefault(); e.dataTransfer.dropEffect = 'move'; clearTreeDrop();
+  if (row && row.dataset.fdrop != null){ row.classList.add('drop-into'); }
+  else if (row && row.dataset.ndrag){
+    if (row.dataset.ndrag === ndrag) return;
+    const rc = row.getBoundingClientRect();
+    row.classList.add(e.clientY < rc.top + rc.height/2 ? 'drop-before' : 'drop-after');
+  } else if (scroll){ scroll.classList.add('drop-root'); }
+});
+document.addEventListener('drop', e => {
+  if (!ndrag) return;
+  const row = e.target.closest && e.target.closest('.folder-row, .note-row');
+  const scroll = e.target.closest && e.target.closest('.tree-scroll');
+  if (!row && !scroll){ return; }
+  e.preventDefault();
+  const id = ndrag; ndrag = null; clearTreeDrop();
+  const note = state.notes.find(n => n.id === id); if (!note) return;
+  if (row && row.dataset.fdrop != null){ moveNoteToFolder(note, row.dataset.fdrop); }
+  else if (row && row.dataset.ndrag){
+    const tgt = state.notes.find(n => n.id === row.dataset.ndrag); if (!tgt) return;
+    const rc = row.getBoundingClientRect();
+    reorderNoteNear(note, tgt, e.clientY >= rc.top + rc.height/2);
+  } else if (scroll){ moveNoteToFolder(note, ''); }
+});
+document.addEventListener('dragend', () => { if (ndrag){ ndrag = null; clearTreeDrop(); document.querySelectorAll('.dragging').forEach(x => x.classList.remove('dragging')); } });
+function moveNoteToFolder(note, fid){
+  const same = (note.folderId||'') === (fid||'');
+  note.folderId = fid || ''; delete note.order;                 // 폴더 맨 끝으로
+  if (fid) ui.folderOpen.add(fid);
+  ui.noteSel = note.id; save(); render(); if (!same) toast(fid ? '폴더로 옮겼어요' : '최상위로 옮겼어요');
+}
+function reorderNoteNear(note, target, after){
+  const fid = target.folderId || '';
+  note.folderId = fid;
+  const list = folderNotes(fid).filter(n => n.id !== note.id);
+  let idx = list.findIndex(n => n.id === target.id);
+  if (after) idx += 1;
+  list.splice(Math.max(0, idx), 0, note);
+  list.forEach((n, i) => { n.order = i; });
+  ui.noteSel = note.id; save(); render();
+}
 document.addEventListener('dblclick', e => {
   if (!e.target.closest) return;
   const chip = e.target.closest('[data-ev]');
@@ -1499,10 +1564,9 @@ function goView(v){
   ui.view = v; scrollTop(); render();
 }
 /* ---------- 메모 워크스페이스 (폴더 트리 + 노트 + 휴지통) ---------- */
-const byName = (a,b) => (a.name||'').localeCompare(b.name||'') || (a.id<b.id?-1:1);
-const byTitle = (a,b) => (a.title||'').localeCompare(b.title||'') || (a.id<b.id?-1:1);
-const childFolders = pid => state.folders.filter(f => (f.parentId||'') === pid && !f.trashed).sort(byName);
-const folderNotes  = fid => state.notes.filter(n => (n.folderId||'') === fid && !n.trashed).sort(byTitle);
+const byOrd = key => (a,b) => ((Number.isFinite(a.order)?a.order:1e9) - (Number.isFinite(b.order)?b.order:1e9)) || (a[key]||'').localeCompare(b[key]||'') || (a.id<b.id?-1:1);
+const childFolders = pid => state.folders.filter(f => (f.parentId||'') === pid && !f.trashed).sort(byOrd('name'));
+const folderNotes  = fid => state.notes.filter(n => (n.folderId||'') === fid && !n.trashed).sort(byOrd('title'));
 const folderById   = id => state.folders.find(f => f.id === id);
 function descendantFolderIds(fid){                       // 하위 폴더 전체(휴지통 포함)
   const out = []; const walk = pid => state.folders.filter(f => (f.parentId||'') === pid).forEach(f => { out.push(f.id); walk(f.id); });
@@ -1540,7 +1604,7 @@ function folderTreeHtml(pid, depth){
   for (const f of childFolders(pid)){
     const open = ui.folderOpen.has(f.id);
     const count = childFolders(f.id).length + folderNotes(f.id).length;
-    html += `<div class="tree-row folder-row ${ui.noteSel===''&&false?'':''}" style="--d:${depth}">
+    html += `<div class="tree-row folder-row" style="--d:${depth}" data-fdrop="${f.id}">
       <button class="tw-chev" data-act="folder-toggle" data-id="${f.id}" aria-label="${open?'접기':'펼치기'}">${count?(open?ICON.down:ICON.right):'<span class=\"tw-dot\"></span>'}</button>
       <button class="tw-main" data-act="folder-toggle" data-id="${f.id}"><span class="tw-ic">${ICON.folder}</span><span class="tw-name">${esc(f.name)||'(폴더)'}</span>${count?`<span class="tw-count">${count}</span>`:''}</button>
       <span class="tw-acts">
@@ -1557,8 +1621,8 @@ function folderTreeHtml(pid, depth){
   return html;
 }
 function noteRowHtml(n, depth){
-  return `<div class="tree-row note-row ${ui.noteSel===n.id?'sel':''}" style="--d:${depth}">
-    <span class="tw-chev"></span>
+  return `<div class="tree-row note-row ${ui.noteSel===n.id?'sel':''}" style="--d:${depth}" draggable="true" data-ndrag="${n.id}">
+    <span class="tw-chev tw-grip" title="끌어서 이동">${ICON.grip}</span>
     <button class="tw-main" data-act="open-note" data-id="${n.id}"><span class="tw-ic note">${ICON.notes}</span><span class="tw-name">${esc(noteTitle(n))}</span></button>
     <span class="tw-acts">
       <button class="icon-btn xs" data-act="edit-note" data-id="${n.id}" title="편집">${ICON.edit}</button>
