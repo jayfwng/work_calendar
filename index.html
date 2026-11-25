@@ -185,6 +185,12 @@ textarea.inp{min-height:70px;resize:vertical}
 .notes-root{display:flex;flex-direction:column;height:100%}
 .notes-tree{display:flex;flex-direction:column;min-height:0;flex:1}
 .tree-toolbar{display:flex;gap:6px;align-items:center;padding:0 0 10px}
+.tree-search{display:flex;gap:4px;align-items:center;margin:0 0 8px}
+.tree-search .inp{padding:7px 10px;font-size:13px}
+.md-view mark,.note-view mark{background:#ffe88a;color:#4a3b00;border-radius:3px;padding:0 2px}
+:root[data-theme="dark"] .md-view mark,:root:not([data-theme="light"]) .md-view mark{background:#6b5a12;color:#ffe88a}
+.md-view strong{font-weight:700}
+.md-view u{text-decoration-thickness:1.5px;text-underline-offset:2px}
 .tree-scroll{flex:1;min-height:0;overflow:auto}
 .tree-row{display:flex;align-items:center;gap:2px;border-radius:8px;padding-left:calc(var(--d,0) * 16px)}
 .tree-row:hover{background:var(--surface2)}
@@ -526,6 +532,7 @@ const ui = {
   folderOpen: new Set(['fld-proc']),   // 펼친 폴더
   noteSel: '',               // 컴퓨터 화면에서 선택한 노트
   notesTrash: false,         // 메모 탭 휴지통 보기
+  noteSearch: '',            // 메모 검색어
 };
 let modal = null;             // { type:'event'|'template', isNew, draft }
 
@@ -886,6 +893,10 @@ function renderModal(){
       <button class="btn sm" data-act="md-mark" data-k="bul" title="글머리표 (Ctrl+Shift+8)">•</button>
       <button class="btn sm" data-act="md-mark" data-k="chk" title="체크박스 (Ctrl+Shift+9)">☐</button>
       <button class="btn sm" data-act="md-mark" data-k="h" title="제목">제목</button>
+      <span style="width:1px;background:var(--line);margin:2px 2px"></span>
+      <button class="btn sm" data-act="md-wrap" data-pre="**" data-post="**" title="굵게 (Ctrl+B)"><b>B</b></button>
+      <button class="btn sm" data-act="md-wrap" data-pre="__" data-post="__" title="밑줄 (Ctrl+U)"><u>U</u></button>
+      <button class="btn sm" data-act="md-wrap" data-pre="==" data-post="==" title="하이라이트 (Ctrl+Shift+H)"><mark>H</mark></button>
     </div>
     <textarea class="inp note-area note-body-ta" data-f="body" placeholder="첫 줄이 제목이 돼요.&#10;그 아래에 내용을 적으세요.">${esc(d.body||'')}</textarea>
     <div class="hint">Enter 목록 자동 이어쓰기 · Tab 들여쓰기 · Ctrl+Enter / Ctrl+S 저장</div>
@@ -1266,6 +1277,7 @@ document.addEventListener('click', e => {
     case 'move-note': openMove(id); break;
     case 'move-to': { const n = state.notes.find(x=>x.id===modal.noteId); if(n){ n.folderId = el.dataset.folder; ui.noteSel=n.id; save(); } closeModal(); render(); toast('옮겼어요'); break; }
     case 'notes-trash': ui.notesTrash = !ui.notesTrash; ui.noteSel=''; render(); break;
+    case 'search-clear': ui.noteSearch = ''; render(); setTimeout(()=>{ const el=document.querySelector('[data-search]'); el&&el.focus(); },20); break;
     case 'restore-folder': restoreFolder(id); break;
     case 'restore-note': restoreNote(id); break;
     case 'purge-folder': purgeFolder(id); break;
@@ -1275,6 +1287,7 @@ document.addEventListener('click', e => {
       if (confirm('이 메모를 삭제할까요?')){ state.notes = state.notes.filter(n => n.id !== modal.draft.id); save(); closeModal(); render(); toast('메모를 삭제했어요'); }
       break;
     case 'md-mark': mdMark(el.dataset.k); break;
+    case 'md-wrap': wrapSel(el.dataset.pre, el.dataset.post); break;
     case 'note-chk': {
       const n = state.notes.find(x => x.id === id); if (!n) break;
       const lines = String(n.body||'').split('\n'); const i = Number(el.dataset.line);
@@ -1536,6 +1549,11 @@ function addListItem(kind, text){
 document.addEventListener('input', e => {
   const t = e.target;
   if (t.dataset.cfg){ cfgDraft[t.dataset.cfg] = t.value; return; }
+  if (t.dataset.search !== undefined){
+    ui.noteSearch = t.value; const pos = t.selectionStart; render();
+    const el = document.querySelector('[data-search]'); if (el){ el.focus(); try { el.setSelectionRange(pos, pos); } catch(x){} }
+    return;
+  }
   if (!modal) return;
   if (t.dataset.f){ modal.draft[t.dataset.f] = t.value; }
   else if (t.dataset.nstep){ modal.draft.steps[Number(t.dataset.i)][t.dataset.nstep] = t.value; }
@@ -1581,6 +1599,13 @@ const stripMk = s => String(s).replace(/^\s*(#{1,3}\s|\d+\.\s|[-•]\s|\[[ xX]\]
 function noteTitle(nt){ return stripMk(String(nt.body||'').split('\n')[0] || '') || '(제목 없음)'; }
 function noteCardFull(nt){ return `<div class="md-view">${renderNoteBody(nt.body, nt.id, 1)}</div>`; }  // 1행은 제목이라 본문에서 제외
 // 본문 텍스트를 가볍게 서식화: 번호/글머리표/체크박스/제목/들여쓰기
+function inlineMd(raw){   // **굵게** __밑줄__ ==하이라이트==
+  let h = esc(raw);
+  h = h.replace(/==([^=]+)==/g, '<mark>$1</mark>');
+  h = h.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  h = h.replace(/__([^_]+)__/g, '<u>$1</u>');
+  return h;
+}
 function renderNoteBody(body, noteId, fromLine){
   const lines = String(body||'').split('\n');
   let html = '', any = false;
@@ -1591,11 +1616,11 @@ function renderNoteBody(body, noteId, fromLine){
     const t = line.trim(), style = `style="padding-left:${pad}px"`;
     if (!t){ html += '<div class="md-blank"></div>'; return; }
     any = true; let m;
-    if (m = t.match(/^(#{1,3})\s+(.*)$/)){ html += `<div class="md-h h${m[1].length}" ${style}>${esc(m[2])}</div>`; return; }
-    if (m = t.match(/^\[([ xX])\]\s+(.*)$/)){ const on = m[1] !== ' '; html += `<label class="md-chk ${on?'on':''}" ${style}><input type="checkbox" ${on?'checked':''} data-act="note-chk" data-id="${noteId}" data-line="${idx}"><span>${esc(m[2])}</span></label>`; return; }
-    { const nm = numMarker(t); if (nm){ const c = t.slice(nm.mk.length); html += `<div class="md-li" ${style}><span class="md-mk num">${esc(numLabel(nm.style, nm.num))}</span><span>${esc(c)}</span></div>`; return; } }
-    if (m = t.match(/^[-•]\s+(.*)$/)){ html += `<div class="md-li" ${style}><span class="md-mk">•</span><span>${esc(m[1])}</span></div>`; return; }
-    html += `<div class="md-p" ${style}>${esc(t)}</div>`;
+    if (m = t.match(/^(#{1,3})\s+(.*)$/)){ html += `<div class="md-h h${m[1].length}" ${style}>${inlineMd(m[2])}</div>`; return; }
+    if (m = t.match(/^\[([ xX])\]\s+(.*)$/)){ const on = m[1] !== ' '; html += `<label class="md-chk ${on?'on':''}" ${style}><input type="checkbox" ${on?'checked':''} data-act="note-chk" data-id="${noteId}" data-line="${idx}"><span>${inlineMd(m[2])}</span></label>`; return; }
+    { const nm = numMarker(t); if (nm){ const c = t.slice(nm.mk.length); html += `<div class="md-li" ${style}><span class="md-mk num">${esc(numLabel(nm.style, nm.num))}</span><span>${inlineMd(c)}</span></div>`; return; } }
+    if (m = t.match(/^[-•]\s+(.*)$/)){ html += `<div class="md-li" ${style}><span class="md-mk">•</span><span>${inlineMd(m[1])}</span></div>`; return; }
+    html += `<div class="md-p" ${style}>${inlineMd(t)}</div>`;
   });
   return any ? html : '<p class="hint">내용이 없어요. 편집을 눌러 작성하세요.</p>';
 }
@@ -1630,9 +1655,23 @@ function noteRowHtml(n, depth){
       <button class="icon-btn xs" data-act="trash-note" data-id="${n.id}" title="휴지통으로">${ICON.trash}</button>
     </span></div>`;
 }
+function searchResults(q){
+  const ql = q.trim().toLowerCase();
+  const hits = state.notes.filter(n => !n.trashed && ((noteTitle(n)).toLowerCase().includes(ql) || (n.body||'').toLowerCase().includes(ql)))
+    .sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+  if (!hits.length) return '<div class="empty" style="margin:8px">검색 결과가 없어요.</div>';
+  return hits.map(n => `<div class="tree-row note-row ${ui.noteSel===n.id?'sel':''}">
+    <span class="tw-chev"></span>
+    <button class="tw-main" data-act="open-note" data-id="${n.id}"><span class="tw-ic note">${ICON.notes}</span><span class="tw-name">${esc(noteTitle(n))}</span>${n.folderId?`<span class="tw-count">${esc(folderPath(n.folderId))}</span>`:''}</button>
+    <span class="tw-acts">
+      <button class="icon-btn xs" data-act="edit-note" data-id="${n.id}" title="편집">${ICON.edit}</button>
+      <button class="icon-btn xs" data-act="trash-note" data-id="${n.id}" title="휴지통으로">${ICON.trash}</button>
+    </span></div>`).join('');
+}
 function treePanel(){
   const rootNotes = folderNotes('');
   const empty = !childFolders('').length && !rootNotes.length;
+  const searching = ui.noteSearch.trim();
   return `<div class="notes-tree">
     <div class="tree-toolbar">
       <button class="btn sm primary" data-act="new-note" data-folder="">+ 메모</button>
@@ -1640,8 +1679,13 @@ function treePanel(){
       <span class="spacer"></span>
       <button class="btn sm ${ui.notesTrash?'primary':''}" data-act="notes-trash" title="휴지통">${ICON.trash}</button>
     </div>
+    <div class="tree-search">
+      <input class="inp" data-search value="${esc(ui.noteSearch)}" placeholder="메모 검색 (제목·내용)" autocomplete="off">
+      ${searching ? `<button class="icon-btn" data-act="search-clear" aria-label="검색 지우기">${ICON.x}</button>` : ''}
+    </div>
     <div class="tree-scroll">
-      ${empty ? '<div class="empty" style="margin:8px">폴더나 메모를 만들어 시작하세요.</div>'
+      ${searching ? searchResults(ui.noteSearch)
+        : empty ? '<div class="empty" style="margin:8px">폴더나 메모를 만들어 시작하세요.</div>'
         : folderTreeHtml('', 0) + rootNotes.map(n => noteRowHtml(n, 0)).join('')}
     </div></div>`;
 }
@@ -1748,6 +1792,14 @@ function prevNumber(value, blockStart){   // 블록 위쪽에서 가장 가까�
     break;
   }
   return 0;
+}
+function wrapSel(pre, post){
+  const ta = document.querySelector('[data-f="body"]'); if (!ta || !modal) return;
+  const { selectionStart:a, selectionEnd:b, value } = ta;
+  const had = a !== b, sel = had ? value.slice(a, b) : '텍스트';
+  const nv = value.slice(0, a) + pre + sel + post + value.slice(b);
+  ta.value = nv; modal.draft.body = nv; ta.focus();
+  ta.setSelectionRange(a + pre.length, a + pre.length + sel.length);
 }
 function mdMark(kind){
   const ta = document.querySelector('[data-f="body"]'); if (!ta || !modal) return;
@@ -1866,6 +1918,9 @@ document.addEventListener('keydown', e => {
     if (inBody && e.key === 'Tab'){ e.preventDefault(); if (e.shiftKey || !cycleNumberStyle(t)) indentBody(t, e.shiftKey); return; }
     if (inBody && e.key === 'Enter' && !mod && !e.isComposing){ if (smartEnter(t)){ e.preventDefault(); } return; }
     if (inBody && mod && e.shiftKey && (e.code === 'Digit7' || e.code === 'Digit8' || e.code === 'Digit9')){ e.preventDefault(); mdMark(e.code === 'Digit7' ? 'num' : e.code === 'Digit8' ? 'bul' : 'chk'); return; }
+    if (inBody && mod && !e.shiftKey && e.code === 'KeyB'){ e.preventDefault(); wrapSel('**','**'); return; }
+    if (inBody && mod && !e.shiftKey && e.code === 'KeyU'){ e.preventDefault(); wrapSel('__','__'); return; }
+    if (inBody && mod && e.shiftKey && e.code === 'KeyH'){ e.preventDefault(); wrapSel('==','=='); return; }
     if (mod && (e.key === 'Enter' || e.code === 'KeyS')){
       e.preventDefault();
       if (modal.type === 'event') saveEvent(); else if (modal.type === 'template') saveTemplate(); else if (modal.type === 'note') saveNote(); else if (modal.type === 'folder') saveFolder();
