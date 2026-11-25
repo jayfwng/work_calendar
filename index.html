@@ -1729,16 +1729,12 @@ function cycleNumberStyle(ta){       // 현재 줄이 번호 목록이면 그 �
   const cur = numMarker(value.slice(lineStart, lineEnd));
   if (!cur) return false;
   const next = NEXT_NUM_STYLE[cur.style];
-  const lines = value.split('\n');
-  const li = value.slice(0, lineStart).split('\n').length - 1;
-  let a = li, z = li;
-  while (a-1 >= 0){ const mm = numMarker(lines[a-1]); if (mm && mm.indent === cur.indent) a--; else break; }
-  while (z+1 < lines.length){ const mm = numMarker(lines[z+1]); if (mm && mm.indent === cur.indent) z++; else break; }
-  for (let i = a; i <= z; i++){ const mm = numMarker(lines[i]); lines[i] = mm.indent + numMk(next, mm.num) + lines[i].slice(mm.indent.length + mm.mk.length); }
-  const nv = lines.join('\n');
+  const curLine = value.slice(lineStart, lineEnd);                    // 커서가 있는 그 줄만
+  const newLine = cur.indent + numMk(next, cur.num) + curLine.slice(cur.indent.length + cur.mk.length);
+  const delta = newLine.length - curLine.length;
+  const nv = value.slice(0, lineStart) + newLine + value.slice(lineEnd);
   ta.value = nv; modal.draft.body = nv;
-  let off = 0; for (let i = 0; i < li; i++) off += lines[i].length + 1;
-  const caret = off + lines[li].length; ta.setSelectionRange(caret, caret);
+  const caret = Math.max(lineStart, ss + delta); ta.setSelectionRange(caret, caret);
   return true;
 }
 function prevNumber(value, blockStart){   // 블록 위쪽에서 가장 가까운 번호를 찾음(글머리표는 건너뜀, 빈 줄/문단에서 멈춤)
