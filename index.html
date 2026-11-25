@@ -1612,7 +1612,7 @@ function renderNoteBody(body, noteId, fromLine){
   lines.forEach((raw, idx) => {
     if (idx < (fromLine||0)) return;
     const line = raw.replace(/\t/g, '  ');
-    const pad = Math.min(line.match(/^ */)[0].length, 16) * 8;
+    const pad = Math.min(line.match(/^ */)[0].length, 20) * 11;
     const t = line.trim(), style = `style="padding-left:${pad}px"`;
     if (!t){ html += '<div class="md-blank"></div>'; return; }
     any = true; let m;
@@ -1766,21 +1766,6 @@ function numMarker(line){            // 숫자 목록이면 {style,num,indent,mk
 }
 function numLabel(style, n){ return style==='paren' ? n+')' : style==='circle' ? circled(n) : n+'.'; }
 function numMk(style, n){ return numLabel(style, n) + ' '; }
-function cycleNumberStyle(ta){       // 현재 줄이 번호 목록이면 그 목록 전체 스타일을 다음 것으로
-  const value = ta.value, ss = ta.selectionStart;
-  const lineStart = value.lastIndexOf('\n', ss-1) + 1;
-  let lineEnd = value.indexOf('\n', ss); if (lineEnd < 0) lineEnd = value.length;
-  const cur = numMarker(value.slice(lineStart, lineEnd));
-  if (!cur) return false;
-  const next = NEXT_NUM_STYLE[cur.style];
-  const curLine = value.slice(lineStart, lineEnd);                    // 커서가 있는 그 줄만
-  const newLine = cur.indent + numMk(next, cur.num) + curLine.slice(cur.indent.length + cur.mk.length);
-  const delta = newLine.length - curLine.length;
-  const nv = value.slice(0, lineStart) + newLine + value.slice(lineEnd);
-  ta.value = nv; modal.draft.body = nv;
-  const caret = Math.max(lineStart, ss + delta); ta.setSelectionRange(caret, caret);
-  return true;
-}
 function prevNumber(value, blockStart){   // 블록 위쪽에서 가장 가까운 번호를 찾음(글머리표는 건너뜀, 빈 줄/문단에서 멈춤)
   const lines = value.slice(0, blockStart).split('\n');
   for (let i = lines.length - 2; i >= 0; i--){
@@ -1818,6 +1803,43 @@ function mdMark(kind){
   if (ss === se){ const c = lineStart + out.length; ta.setSelectionRange(c, c); }   // 한 줄이면 커서를 끝에
   else ta.setSelectionRange(lineStart, lineStart + out.length);                      // 여러 줄이면 블록 선택
 }
+const INDENT = '  ';                                    // 한 단계 = 2칸
+const levelStyle = lvl => ['dot','paren','circle'][lvl % 3];
+// 들여쓰기 깊이에 따라 번호 서식과 번호를 다시 매김 (1. → 1) → ①, 레벨별 1부터)
+function renumber(body){
+  const lines = String(body).split('\n');
+  const counters = [];
+  for (let i = 0; i < lines.length; i++){
+    const line = lines[i];
+    if (!line.trim()){ counters.length = 0; continue; }   // 빈 줄 → 목록 끊김
+    const nm = numMarker(line);
+    if (!nm) continue;                                    // 번호 아닌 줄은 영향 없음
+    const lvl = Math.floor(nm.indent.length / INDENT.length);
+    counters[lvl] = (counters[lvl] || 0) + 1;
+    counters.length = lvl + 1;                            // 더 깊은 레벨 번호 리셋
+    lines[i] = nm.indent + numMk(levelStyle(lvl), counters[lvl]) + line.slice(nm.indent.length + nm.mk.length);
+  }
+  return lines.join('\n');
+}
+function setCaretLineEnd(ta, value, li){
+  const lines = value.split('\n'); let off = 0;
+  for (let i = 0; i < li; i++) off += lines[i].length + 1;
+  const c = off + (lines[li] ? lines[li].length : 0); ta.setSelectionRange(c, c);
+}
+// Tab/Shift+Tab: 번호 줄이면 한 단계 들여쓰기/내어쓰기 후 서식·번호 자동 (아니면 false)
+function indentNumbered(ta, outdent){
+  const value = ta.value, ss = ta.selectionStart;
+  const lineStart = value.lastIndexOf('\n', ss-1) + 1;
+  let lineEnd = value.indexOf('\n', ss); if (lineEnd < 0) lineEnd = value.length;
+  const line = value.slice(lineStart, lineEnd);
+  if (!numMarker(line)) return false;
+  const li = value.slice(0, lineStart).split('\n').length - 1;
+  const newLine = outdent ? (line.startsWith(INDENT) ? line.slice(INDENT.length) : line) : INDENT + line;
+  let nv = value.slice(0, lineStart) + newLine + value.slice(lineEnd);
+  nv = renumber(nv);
+  ta.value = nv; modal.draft.body = nv; setCaretLineEnd(ta, nv, li);
+  return true;
+}
 function smartEnter(ta){
   if (ta.selectionStart !== ta.selectionEnd) return false;
   const ss = ta.selectionStart, value = ta.value;
@@ -1837,8 +1859,10 @@ function smartEnter(ta){
     ta.value = nv; const c = lineStart + indent.length; ta.setSelectionRange(c, c); modal.draft.body = nv; return true;
   }
   const ins = '\n' + indent + mk;
-  const nv = value.slice(0, ss) + ins + value.slice(ss);
-  ta.value = nv; const c = ss + ins.length; ta.setSelectionRange(c, c); modal.draft.body = nv; return true;
+  const newLi = value.slice(0, ss).split('\n').length;    // 새로 생기는 줄의 인덱스
+  let nv = value.slice(0, ss) + ins + value.slice(ss);
+  nv = renumber(nv);                                       // 번호 일관성 유지
+  ta.value = nv; modal.draft.body = nv; setCaretLineEnd(ta, nv, newLi); return true;
 }
 function indentBody(ta, outdent){
   const { selectionStart:ss, selectionEnd:se, value } = ta;
@@ -1915,7 +1939,7 @@ document.addEventListener('keydown', e => {
   const mod = e.ctrlKey || e.metaKey;
   if (modal){
     const inBody = modal.type === 'note' && t.dataset && t.dataset.f === 'body';
-    if (inBody && e.key === 'Tab'){ e.preventDefault(); if (e.shiftKey || !cycleNumberStyle(t)) indentBody(t, e.shiftKey); return; }
+    if (inBody && e.key === 'Tab'){ e.preventDefault(); if (!indentNumbered(t, e.shiftKey)) indentBody(t, e.shiftKey); return; }
     if (inBody && e.key === 'Enter' && !mod && !e.isComposing){ if (smartEnter(t)){ e.preventDefault(); } return; }
     if (inBody && mod && e.shiftKey && (e.code === 'Digit7' || e.code === 'Digit8' || e.code === 'Digit9')){ e.preventDefault(); mdMark(e.code === 'Digit7' ? 'num' : e.code === 'Digit8' ? 'bul' : 'chk'); return; }
     if (inBody && mod && !e.shiftKey && e.code === 'KeyB'){ e.preventDefault(); wrapSel('**','**'); return; }
