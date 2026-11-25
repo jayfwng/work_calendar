@@ -283,6 +283,8 @@ textarea.note-area{min-height:110px}
 .qa-btn .dot{width:9px;height:9px}
 @media (min-width:1024px){ .quickadd{display:none} }   /* 컴퓨터는 왼쪽 메뉴에 있으니 숨김 */
 @media (min-width:1024px){ textarea.note-area{min-height:130px} }
+textarea.note-body-ta{min-height:46vh;line-height:1.65}
+@media (min-width:1024px){ textarea.note-body-ta{min-height:58vh} }
 
 .pill{flex:none;font-size:12px;padding:4px 10px;border-radius:20px;background:var(--surface2);color:var(--muted);border:0;cursor:pointer}
 .pill.ok{color:var(--ok)}
@@ -1272,7 +1274,7 @@ document.addEventListener('click', e => {
     }
 
     /* 모달 */
-    case 'backdrop': if (e.target === el) closeModal(); break;
+    case 'backdrop': if (e.target === el && backdropDown) closeModal(); break;
     case 'close': closeModal(); break;
     case 'color': modal.draft.color = el.dataset.v; renderModal(); break;
     case 'color-del': {
@@ -1452,8 +1454,10 @@ function quickMore(){
   modal = { type:'event', isNew:true, draft:d };
   pushModalState(); renderModal();
 }
+let backdropDown = false;   // 배경(backdrop)에서 눌렀는지 — 드래그로 밖에서 놓아도 안 닫히게
 document.addEventListener('mousedown', e => {
   if (quick && !e.target.closest('#quick')) closeQuick();
+  backdropDown = !!(e.target.classList && e.target.classList.contains('backdrop'));
 });
 
 function addListItem(kind, text){
@@ -1629,12 +1633,24 @@ function saveNote(){
   save(); closeModal(); render(); toast('메모를 저장했어요');
 }
 /* 본문 편집 도우미 */
+function prevNumber(value, blockStart){   // 블록 위쪽에서 가장 가까운 번호를 찾음(글머리표는 건너뜀, 빈 줄/문단에서 멈춤)
+  const lines = value.slice(0, blockStart).split('\n');
+  for (let i = lines.length - 2; i >= 0; i--){
+    const t = lines[i].trim();
+    if (!t) break;
+    const mN = t.match(/^(\d+)\.\s/);
+    if (mN) return parseInt(mN[1], 10);
+    if (/^[-•]\s/.test(t) || /^\[[ xX]\]\s/.test(t)) continue;   // 글머리표·체크박스는 건너뜀
+    break;
+  }
+  return 0;
+}
 function mdMark(kind){
   const ta = document.querySelector('[data-f="body"]'); if (!ta || !modal) return;
   const { selectionStart:ss, selectionEnd:se, value } = ta;
   const lineStart = value.lastIndexOf('\n', ss-1) + 1;
   let lineEnd = value.indexOf('\n', se); if (lineEnd < 0) lineEnd = value.length;
-  let num = 1;
+  let num = kind === 'num' ? prevNumber(value, lineStart) + 1 : 1;
   const out = value.slice(lineStart, lineEnd).split('\n').map(l => {
     const indent = l.match(/^ */)[0];
     const rest = l.slice(indent.length).replace(/^(\d+\.\s|[-•]\s|\[[ xX]\]\s|#{1,3}\s)/, '');
