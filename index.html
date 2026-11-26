@@ -254,6 +254,15 @@ textarea.note-area{min-height:300px;line-height:1.7;white-space:pre-wrap;overflo
 .md-view{font-size:var(--note-fs);line-height:1.75}
 textarea.note-body-ta{font-size:var(--note-fs)}
 .md-view .md-hr{border:0;border-top:1px solid var(--line);margin:12px 0}
+.md-view .md-link{color:var(--accent);text-decoration:none;border-bottom:1px solid color-mix(in srgb,var(--accent) 45%,transparent);cursor:pointer}
+.md-view .md-link:hover{background:var(--accent-weak);border-radius:3px}
+.md-view .md-link.broken{color:var(--muted);border-bottom-style:dashed}
+.link-menu{position:fixed;z-index:50;width:280px;max-width:calc(100vw - 16px);background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.18);padding:8px}
+.link-menu .inp{padding:7px 10px;font-size:13px;margin-bottom:6px}
+.link-list{max-height:40vh;overflow:auto;display:flex;flex-direction:column;gap:2px}
+.link-item{border:0;background:none;text-align:left;padding:7px 8px;border-radius:8px;cursor:pointer;font-size:14px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.link-item:hover{background:var(--surface2)}
+.link-empty{color:var(--muted);font-size:13px;padding:8px}
 .tw-pin{color:#e8a500;font-size:12px;margin-left:4px}
 .tree-sec{font-size:11px;font-weight:700;color:var(--muted);padding:4px 6px 2px;letter-spacing:.02em}
 .tree-sec-gap{height:8px;border-bottom:1px solid var(--line);margin:2px 4px 6px}
@@ -912,6 +921,7 @@ function renderModal(){
       <button class="btn sm" data-act="md-wrap" data-pre="==" data-post="==" title="하이라이트 (Ctrl+Shift+H)"><mark>H</mark></button>
       <button class="btn sm" data-act="md-date" title="오늘 날짜 삽입">📅</button>
       <button class="btn sm" data-act="md-hr" title="구분선">─</button>
+      <button class="btn sm" data-act="link-menu" title="메모 링크 [[ ]]">🔗</button>
     </div>
     <textarea class="inp note-area note-body-ta" data-f="body" placeholder="첫 줄이 제목이 돼요.&#10;그 아래에 내용을 적으세요.">${esc(d.body||'')}</textarea>
     <div class="hint">Enter 목록 자동 이어쓰기 · Tab 들여쓰기 · Ctrl+Enter / Ctrl+S 저장</div>
@@ -1305,6 +1315,15 @@ document.addEventListener('click', e => {
     case 'md-mark': mdMark(el.dataset.k); break;
     case 'md-wrap': wrapSel(el.dataset.pre, el.dataset.post); break;
     case 'md-date': insertAtCaret(todayStr()); break;
+    case 'link-menu': openLinkMenu(); break;
+    case 'link-ins': insertAtCaret('[[' + el.dataset.title + ']]'); closeLinkMenu(); break;
+    case 'note-link': {
+      const tgt = state.notes.find(x => !x.trashed && noteTitle(x) === el.dataset.title);
+      if (!tgt){ toast(`'${el.dataset.title}' 메모가 없어요`); break; }
+      ui.view = 'notes'; ui.notesTrash = false; ui.noteSel = tgt.id; ui.noteSearch = ''; expandToNote(tgt);
+      if (modal && modal.type === 'note-view') openNoteView(tgt.id); else render();
+      break;
+    }
     case 'md-hr': { const ta = document.querySelector('[data-f="body"]'); const atLineStart = ta && (ta.selectionStart === 0 || ta.value[ta.selectionStart-1] === '\n'); insertAtCaret((atLineStart ? '' : '\n') + '---\n'); break; }
     case 'set-notefont': state.settings.noteFont = el.dataset.v; save(); render(); break;
     case 'dup-note': {
@@ -1569,6 +1588,7 @@ function quickMore(){
 let backdropDown = false;   // 배경(backdrop)에서 눌렀는지 — 드래그로 밖에서 놓아도 안 닫히게
 document.addEventListener('mousedown', e => {
   if (quick && !e.target.closest('#quick')) closeQuick();
+  if (document.getElementById('linkMenu') && !e.target.closest('#linkMenu') && !e.target.closest('[data-act="link-menu"]')) closeLinkMenu();
   backdropDown = !!(e.target.classList && e.target.classList.contains('backdrop'));
 });
 
@@ -1633,8 +1653,12 @@ const stripMk = s => String(s).replace(/^\s*(#{1,3}\s|\d+\.\s|[-•]\s|\[[ xX]\]
 function noteTitle(nt){ return stripMk(String(nt.body||'').split('\n')[0] || '') || '(제목 없음)'; }
 function noteCardFull(nt){ return `<div class="md-view">${renderNoteBody(nt.body, nt.id, 1)}</div>`; }  // 1행은 제목이라 본문에서 제외
 // 본문 텍스트를 가볍게 서식화: 번호/글머리표/체크박스/제목/들여쓰기
-function inlineMd(raw){   // **굵게** __밑줄__ ==하이라이트==
+function inlineMd(raw){   // [[메모링크]] **굵게** __밑줄__ ==하이라이트==
   let h = esc(raw);
+  h = h.replace(/\[\[([^\[\]\n]+)\]\]/g, (mm, t) => {
+    const exists = state.notes.some(n => !n.trashed && noteTitle(n) === t.trim());
+    return `<a class="md-link ${exists?'':'broken'}" data-act="note-link" data-title="${t}">${t}</a>`;
+  });
   h = h.replace(/==([^=]+)==/g, '<mark>$1</mark>');
   h = h.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
   h = h.replace(/__([^_]+)__/g, '<u>$1</u>');
@@ -1840,6 +1864,27 @@ function insertAtCaret(text){
   ta.value = nv; modal.draft.body = nv; ta.focus();
   const c = a + text.length; ta.setSelectionRange(c, c);
 }
+function closeLinkMenu(){ const m = document.getElementById('linkMenu'); if (m) m.remove(); }
+function openLinkMenu(){
+  closeLinkMenu();
+  const ta = document.querySelector('[data-f="body"]'); if (!ta) return;
+  const box = document.createElement('div'); box.className = 'link-menu'; box.id = 'linkMenu';
+  box.innerHTML = `<input class="inp" id="linkQ" placeholder="메모 제목 검색" autocomplete="off"><div class="link-list" id="linkList"></div>`;
+  const r = ta.getBoundingClientRect();
+  box.style.left = Math.round(Math.min(r.left + 8, innerWidth - 300)) + 'px';
+  box.style.top = Math.round(r.top + 8) + 'px';
+  document.body.appendChild(box);
+  const list = () => {
+    const ql = (document.getElementById('linkQ').value || '').trim().toLowerCase();
+    const hits = state.notes.filter(n => !n.trashed && n.id !== (modal && modal.draft && modal.draft.id) && noteTitle(n).toLowerCase().includes(ql)).slice(0, 10);
+    document.getElementById('linkList').innerHTML = hits.length
+      ? hits.map(n => `<button class="link-item" data-act="link-ins" data-title="${esc(noteTitle(n))}">${esc(noteTitle(n))}</button>`).join('')
+      : '<div class="link-empty">메모가 없어요</div>';
+  };
+  list();
+  const q = document.getElementById('linkQ'); q.addEventListener('input', list); q.focus();
+}
+function expandToNote(n){ let fid = n.folderId; let g = 0; while (fid && g++ < 50){ ui.folderOpen.add(fid); const f = folderById(fid); fid = f ? f.parentId : ''; } }
 function mdMark(kind){
   const ta = document.querySelector('[data-f="body"]'); if (!ta || !modal) return;
   const { selectionStart:ss, selectionEnd:se, value } = ta;
@@ -1988,6 +2033,7 @@ document.addEventListener('keydown', e => {
     if (e.key === 'Escape'){ e.preventDefault(); closeQuick(); return; }
     if (e.key === 'Enter' && !e.isComposing && t.id === 'quick-inp'){ e.preventDefault(); saveQuick(); return; }
   }
+  if (e.key === 'Escape' && document.getElementById('linkMenu')){ closeLinkMenu(); return; }
   if (e.key === 'Escape' && modal){ closeModal(); return; }
   if (e.key === 'Enter' && !e.isComposing && t.dataset && t.dataset.leNew){ e.preventDefault(); addListItem(t.dataset.leNew, t.value); return; }
   const mod = e.ctrlKey || e.metaKey;
