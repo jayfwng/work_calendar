@@ -1516,6 +1516,11 @@ function reorderNoteNear(note, target, after){
 }
 document.addEventListener('dblclick', e => {
   if (!e.target.closest) return;
+  const nv = e.target.closest('.note-view');                 // 메모 뷰어 더블클릭 → 편집
+  if (nv && !e.target.closest('a, input, button, label')){
+    const id = (modal && modal.type === 'note-view') ? modal.id : ui.noteSel;
+    if (id){ e.preventDefault(); openNote(id); return; }
+  }
   const chip = e.target.closest('[data-ev]');
   if (chip){ e.preventDefault(); closeQuick(); openEvent(chip.dataset.ev); return; }
   const c = e.target.closest('.cell[data-date]');
