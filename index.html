@@ -248,7 +248,15 @@ textarea.inp{min-height:70px;resize:vertical}
 textarea.note-area{min-height:300px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere;overflow:auto;font-size:16.5px;tab-size:2}
 .md-toolbar{display:flex;gap:6px;margin:0 0 8px}
 .md-toolbar .btn{min-width:38px}
-.md-view{font-size:16.5px;line-height:1.75}
+:root{--note-fs:16.5px}
+:root[data-notefont="s"]{--note-fs:14.5px}
+:root[data-notefont="l"]{--note-fs:19px}
+.md-view{font-size:var(--note-fs);line-height:1.75}
+textarea.note-body-ta{font-size:var(--note-fs)}
+.md-view .md-hr{border:0;border-top:1px solid var(--line);margin:12px 0}
+.tw-pin{color:#e8a500;font-size:12px;margin-left:4px}
+.tree-sec{font-size:11px;font-weight:700;color:var(--muted);padding:4px 6px 2px;letter-spacing:.02em}
+.tree-sec-gap{height:8px;border-bottom:1px solid var(--line);margin:2px 4px 6px}
 .md-view .md-blank{height:8px}
 .md-view .md-p{white-space:pre-wrap;overflow-wrap:anywhere}
 .md-view .md-h{font-weight:700;margin:10px 0 2px}
@@ -426,6 +434,9 @@ const ICON = {
   folder:'<svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>',
   folderPlus:'<svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M12 11v5M9.5 13.5h5"/></svg>',
   trash:'<svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 13a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1l1-13M9 7V4h6v3"/></svg>',
+  pin:'<svg viewBox="0 0 24 24"><path d="M9 4h6l-1 6 3 3H7l3-3-1-6zM12 16v4"/></svg>',
+  copy:'<svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>',
+  cal:'<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>',
   restore:'<svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8m0-5v5h5"/></svg>',
   move:'<svg viewBox="0 0 24 24"><path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l3 3 3-3M19 9l3 3-3 3M2 12h20M12 2v20"/></svg>',
   edit:'<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4z"/></svg>',
@@ -447,7 +458,7 @@ function defaultState(){
     }],
     folders:[{ id:'fld-proc', name:'업무 프로세스', parentId:'', updatedAt:0 }],
     deleted:{},                 // 동기화용 삭제 기록 { id: 삭제시각 }
-    settings:{ weekStart:1, theme:'system', customColors:[] }
+    settings:{ weekStart:1, theme:'system', customColors:[], noteFont:'m' }
   };
 }
 function legacyNoteBody(nt){   // {steps:[{text,desc}], memo} 형태를 본문 텍스트로 변환
@@ -480,7 +491,7 @@ function normalize(s){
     notes: (Array.isArray(s.notes) ? s.notes : d.notes).map(nt => ({
       id:nt.id||uid(), title:String(nt.title||''), folderId:String(nt.folderId||''),
       body: typeof nt.body === 'string' ? nt.body : legacyNoteBody(nt),   // 예전 단계/메모는 본문 텍스트로 이전
-      trashed:!!nt.trashed, trashedAt:+nt.trashedAt||0, updatedAt:+nt.updatedAt||0,
+      trashed:!!nt.trashed, trashedAt:+nt.trashedAt||0, updatedAt:+nt.updatedAt||0, pinned:!!nt.pinned,
       ...(Number.isFinite(nt.order) ? { order:nt.order } : {})
     })),
     folders: (Array.isArray(s.folders) ? s.folders : (Array.isArray(s.notes) ? [] : d.folders)).map(f => ({
@@ -745,6 +756,8 @@ function viewSettings(){
   <div class="panel">
     <div class="prow"><div class="grow t">한 주의 시작</div>
       <div class="seg"><button class="${s.weekStart===1?'on':''}" data-act="set-week" data-v="1">월요일</button><button class="${s.weekStart===0?'on':''}" data-act="set-week" data-v="0">일요일</button></div></div>
+    <div class="prow"><div class="grow t">메모 글자 크기</div>
+      <div class="seg">${[['s','작게'],['m','보통'],['l','크게']].map(([v,l])=>`<button class="${(s.noteFont||'m')===v?'on':''}" data-act="set-notefont" data-v="${v}">${l}</button>`).join('')}</div></div>
     <div class="prow desk-only"><div class="grow"><div class="t">키보드 단축키</div><div class="d">아무 화면에서나 <kbd>?</kbd> 를 누르면 볼 수 있어요</div></div><button class="btn sm" data-act="help">보기</button></div>
     <div class="prow"><div class="grow t">테마</div>
       <div class="seg">${[['system','시스템'],['light','라이트'],['dark','다크']].map(([v,l])=>`<button class="${s.theme===v?'on':''}" data-act="set-theme" data-v="${v}">${l}</button>`).join('')}</div></div>
@@ -882,7 +895,7 @@ function renderModal(){
     const nt = state.notes.find(n => n.id === modal.id) || { title:'', body:'', id:'' };
     body = `
     <div class="sheet-h"><h2 class="v-title">${esc(noteTitle(nt))}</h2>
-      <div style="display:flex;gap:4px"><button class="btn sm" data-act="edit-note" data-id="${modal.id}">${ICON.edit} 편집</button><button class="icon-btn" data-act="close" aria-label="닫기">${ICON.x}</button></div></div>
+      <div style="display:flex;gap:4px"><button class="icon-btn ${nt.pinned?'star-on':''}" data-act="pin-note" data-id="${modal.id}" title="고정">${ICON.pin}</button><button class="icon-btn" data-act="dup-note" data-id="${modal.id}" title="복제">${ICON.copy}</button><button class="btn sm" data-act="edit-note" data-id="${modal.id}">${ICON.edit} 편집</button><button class="icon-btn" data-act="close" aria-label="닫기">${ICON.x}</button></div></div>
     <div class="note-view">${noteCardFull(nt)}</div>`;
   } else if (modal.type === 'note'){
     const d = modal.draft;
@@ -897,6 +910,8 @@ function renderModal(){
       <button class="btn sm" data-act="md-wrap" data-pre="**" data-post="**" title="굵게 (Ctrl+B)"><b>B</b></button>
       <button class="btn sm" data-act="md-wrap" data-pre="__" data-post="__" title="밑줄 (Ctrl+U)"><u>U</u></button>
       <button class="btn sm" data-act="md-wrap" data-pre="==" data-post="==" title="하이라이트 (Ctrl+Shift+H)"><mark>H</mark></button>
+      <button class="btn sm" data-act="md-date" title="오늘 날짜 삽입">📅</button>
+      <button class="btn sm" data-act="md-hr" title="구분선">─</button>
     </div>
     <textarea class="inp note-area note-body-ta" data-f="body" placeholder="첫 줄이 제목이 돼요.&#10;그 아래에 내용을 적으세요.">${esc(d.body||'')}</textarea>
     <div class="hint">Enter 목록 자동 이어쓰기 · Tab 들여쓰기 · Ctrl+Enter / Ctrl+S 저장</div>
@@ -1064,6 +1079,7 @@ function render(){
   fab.style.display = (ui.view === 'settings' || ui.view === 'notes') ? 'none' : '';
   fab.innerHTML = ICON.plus;
   document.documentElement.dataset.view = ui.view;
+  document.documentElement.dataset.notefont = state.settings.noteFont || 'm';
   document.getElementById('side').innerHTML = viewSide();
   document.getElementById('todo').innerHTML = viewTodo();
   applyTheme();
@@ -1288,6 +1304,24 @@ document.addEventListener('click', e => {
       break;
     case 'md-mark': mdMark(el.dataset.k); break;
     case 'md-wrap': wrapSel(el.dataset.pre, el.dataset.post); break;
+    case 'md-date': insertAtCaret(todayStr()); break;
+    case 'md-hr': { const ta = document.querySelector('[data-f="body"]'); const atLineStart = ta && (ta.selectionStart === 0 || ta.value[ta.selectionStart-1] === '\n'); insertAtCaret((atLineStart ? '' : '\n') + '---\n'); break; }
+    case 'set-notefont': state.settings.noteFont = el.dataset.v; save(); render(); break;
+    case 'dup-note': {
+      const src = state.notes.find(n => n.id === id); if (!src) break;
+      const lines = String(src.body||'').split('\n'); lines[0] = (lines[0]||'') + ' (사본)';
+      const copyBody = lines.join('\n');
+      const copy = { id:uid(), title: noteTitle({ body:copyBody }), body: copyBody, folderId: src.folderId||'', pinned:false };
+      state.notes.push(copy); ui.noteSel = copy.id; save(); render(); toast('메모를 복제했어요');
+      break;
+    }
+    case 'pin-note': {
+      const n = state.notes.find(x => x.id === id); if (!n) break;
+      n.pinned = !n.pinned; save();
+      if (modal && modal.type === 'note-view') renderModal(); else render();
+      toast(n.pinned ? '고정했어요' : '고정을 해제했어요');
+      break;
+    }
     case 'note-chk': {
       const n = state.notes.find(x => x.id === id); if (!n) break;
       const lines = String(n.body||'').split('\n'); const i = Number(el.dataset.line);
@@ -1615,6 +1649,7 @@ function renderNoteBody(body, noteId, fromLine){
     const pad = Math.min(line.match(/^ */)[0].length, 20) * 11;
     const t = line.trim(), style = `style="padding-left:${pad}px"`;
     if (!t){ html += '<div class="md-blank"></div>'; return; }
+    if (/^(-{3,}|\*{3,}|_{3,})$/.test(t)){ html += '<hr class="md-hr">'; any = true; return; }
     any = true; let m;
     if (m = t.match(/^(#{1,3})\s+(.*)$/)){ html += `<div class="md-h h${m[1].length}" ${style}>${inlineMd(m[2])}</div>`; return; }
     if (m = t.match(/^\[([ xX])\]\s+(.*)$/)){ const on = m[1] !== ' '; html += `<label class="md-chk ${on?'on':''}" ${style}><input type="checkbox" ${on?'checked':''} data-act="note-chk" data-id="${noteId}" data-line="${idx}"><span>${inlineMd(m[2])}</span></label>`; return; }
@@ -1648,8 +1683,9 @@ function folderTreeHtml(pid, depth){
 function noteRowHtml(n, depth){
   return `<div class="tree-row note-row ${ui.noteSel===n.id?'sel':''}" style="--d:${depth}" draggable="true" data-ndrag="${n.id}">
     <span class="tw-chev tw-grip" title="끌어서 이동">${ICON.grip}</span>
-    <button class="tw-main" data-act="open-note" data-id="${n.id}"><span class="tw-ic note">${ICON.notes}</span><span class="tw-name">${esc(noteTitle(n))}</span></button>
+    <button class="tw-main" data-act="open-note" data-id="${n.id}"><span class="tw-ic note">${ICON.notes}</span><span class="tw-name">${esc(noteTitle(n))}</span>${n.pinned?`<span class="tw-pin">📌</span>`:''}</button>
     <span class="tw-acts">
+      <button class="icon-btn xs" data-act="pin-note" data-id="${n.id}" title="${n.pinned?'고정 해제':'고정'}">${ICON.pin}</button>
       <button class="icon-btn xs" data-act="edit-note" data-id="${n.id}" title="편집">${ICON.edit}</button>
       <button class="icon-btn xs" data-act="move-note" data-id="${n.id}" title="이동">${ICON.move}</button>
       <button class="icon-btn xs" data-act="trash-note" data-id="${n.id}" title="휴지통으로">${ICON.trash}</button>
@@ -1667,6 +1703,14 @@ function searchResults(q){
       <button class="icon-btn xs" data-act="edit-note" data-id="${n.id}" title="편집">${ICON.edit}</button>
       <button class="icon-btn xs" data-act="trash-note" data-id="${n.id}" title="휴지통으로">${ICON.trash}</button>
     </span></div>`).join('');
+}
+function pinnedSection(){
+  const pins = state.notes.filter(n => n.pinned && !n.trashed).sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+  if (!pins.length) return '';
+  return `<div class="tree-sec">📌 고정됨</div>` + pins.map(n => `<div class="tree-row note-row ${ui.noteSel===n.id?'sel':''}">
+    <span class="tw-chev"></span>
+    <button class="tw-main" data-act="open-note" data-id="${n.id}"><span class="tw-ic note">${ICON.notes}</span><span class="tw-name">${esc(noteTitle(n))}</span></button>
+    <span class="tw-acts"><button class="icon-btn xs" data-act="pin-note" data-id="${n.id}" title="고정 해제">${ICON.pin}</button></span></div>`).join('') + `<div class="tree-sec-gap"></div>`;
 }
 function treePanel(){
   const rootNotes = folderNotes('');
@@ -1686,7 +1730,7 @@ function treePanel(){
     <div class="tree-scroll">
       ${searching ? searchResults(ui.noteSearch)
         : empty ? '<div class="empty" style="margin:8px">폴더나 메모를 만들어 시작하세요.</div>'
-        : folderTreeHtml('', 0) + rootNotes.map(n => noteRowHtml(n, 0)).join('')}
+        : pinnedSection() + folderTreeHtml('', 0) + rootNotes.map(n => noteRowHtml(n, 0)).join('')}
     </div></div>`;
 }
 function trashPanel(){
@@ -1712,7 +1756,10 @@ function notesPane(){                                    // 컴퓨터 오른쪽 
   if (!sel) return `<div class="notes-pane empty-pane"><div class="empty">왼쪽에서 메모를 선택하세요.</div></div>`;
   return `<div class="notes-pane">
     <div class="pane-head"><div><div class="eyebrow">${esc(folderPath(sel.folderId)) || '메모'}</div><h2>${esc(noteTitle(sel))}</h2></div>
-      <button class="btn sm" data-act="edit-note" data-id="${sel.id}">${ICON.edit} 편집</button></div>
+      <div style="display:flex;gap:4px;flex:none">
+        <button class="icon-btn ${sel.pinned?'star-on':''}" data-act="pin-note" data-id="${sel.id}" title="${sel.pinned?'고정 해제':'고정'}">${ICON.pin}</button>
+        <button class="icon-btn" data-act="dup-note" data-id="${sel.id}" title="복제">${ICON.copy}</button>
+        <button class="btn sm" data-act="edit-note" data-id="${sel.id}">${ICON.edit} 편집</button></div></div>
     <div class="note-view">${noteCardFull(sel)}</div></div>`;
 }
 function viewNotes(){
@@ -1785,6 +1832,13 @@ function wrapSel(pre, post){
   const nv = value.slice(0, a) + pre + sel + post + value.slice(b);
   ta.value = nv; modal.draft.body = nv; ta.focus();
   ta.setSelectionRange(a + pre.length, a + pre.length + sel.length);
+}
+function insertAtCaret(text){
+  const ta = document.querySelector('[data-f="body"]'); if (!ta || !modal) return;
+  const { selectionStart:a, selectionEnd:b, value } = ta;
+  const nv = value.slice(0, a) + text + value.slice(b);
+  ta.value = nv; modal.draft.body = nv; ta.focus();
+  const c = a + text.length; ta.setSelectionRange(c, c);
 }
 function mdMark(kind){
   const ta = document.querySelector('[data-f="body"]'); if (!ta || !modal) return;
