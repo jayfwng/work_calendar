@@ -303,7 +303,7 @@ textarea.note-body-ta{font-size:var(--note-fs)}
 .hl-ta::selection{background:var(--accent-weak)}
 .hl-backdrop{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;color:var(--text);
   white-space:pre-wrap;overflow-wrap:anywhere;word-break:normal;border:1px solid transparent;border-radius:10px;
-  padding:9px 11px;font-size:var(--note-fs);line-height:1.7;tab-size:2;font-family:inherit}
+  padding:9px 11px;font-size:var(--note-fs);line-height:1.65;tab-size:2;font-family:inherit;letter-spacing:normal}
 .hl-backdrop .hl-title{color:var(--text)}
 .hl-backdrop .hl-mk{color:var(--muted);opacity:.65}
 .hl-backdrop .hl-num{color:var(--accent)}
@@ -1792,8 +1792,20 @@ function inlineMd(raw){   // [[메모링크]] **굵게** __밑줄__ ==하이라�
   h = h.replace(/__([^_]+)__/g, '<u>$1</u>');
   return h;
 }
+// 줄을 넘겨 감싼 서식(**…**, __…__, ==…==)을 줄마다 감싼 형태로 펼친다 (읽기뷰 전용)
+function expandMultilineMarks(s){
+  return String(s||'').replace(/(\*\*|__|==)([\s\S]+?)\1/g, (m, mk, inner) => {
+    if (!inner.includes('\n')) return m;                     // 한 줄은 그대로
+    return inner.split('\n').map(l => {
+      const core = l.trim(); if (!core) return l;            // 빈 줄은 건너뜀
+      const lead = l.slice(0, l.length - l.trimStart().length);
+      const trail = l.slice(l.trimEnd().length);
+      return lead + mk + core + mk + trail;
+    }).join('\n');
+  });
+}
 function renderNoteBody(body, noteId, fromLine){
-  const lines = String(body||'').split('\n');
+  const lines = expandMultilineMarks(body).split('\n');
   let html = '', any = false;
   lines.forEach((raw, idx) => {
     if (idx < (fromLine||0)) return;
@@ -1979,13 +1991,29 @@ function prevNumber(value, blockStart){   // 블록 위쪽에서 가장 가까�
   }
   return 0;
 }
+function syncHl(ta){ const hl = document.getElementById('noteHl'); if (hl){ hl.innerHTML = highlightSource(ta.value); hl.scrollTop = ta.scrollTop; } }
 function wrapSel(pre, post){
   const ta = document.querySelector('[data-f="body"]'); if (!ta || !modal) return;
   const { selectionStart:a, selectionEnd:b, value } = ta;
   const had = a !== b, sel = had ? value.slice(a, b) : '텍스트';
-  const nv = value.slice(0, a) + pre + sel + post + value.slice(b);
+  const multi = had && sel.includes('\n');
+  let inner;
+  if (multi){
+    // 여러 줄 선택: 서식은 줄을 넘지 못하므로 비어있지 않은 줄마다 감싼다
+    inner = sel.split('\n').map(line => {
+      const core = line.trim(); if (!core) return line;         // 빈 줄은 그대로
+      const lead = line.slice(0, line.length - line.trimStart().length);
+      const trail = line.slice(line.trimEnd().length);
+      return lead + pre + core + post + trail;
+    }).join('\n');
+  } else {
+    inner = pre + sel + post;
+  }
+  const nv = value.slice(0, a) + inner + value.slice(b);
   ta.value = nv; modal.draft.body = nv; ta.focus();
-  ta.setSelectionRange(a + pre.length, a + pre.length + sel.length);
+  if (multi) ta.setSelectionRange(a, a + inner.length);
+  else ta.setSelectionRange(a + pre.length, a + pre.length + sel.length);
+  const hl = document.getElementById('noteHl'); if (hl){ hl.innerHTML = highlightSource(nv); hl.scrollTop = ta.scrollTop; }
 }
 function insertAtCaret(text){
   const ta = document.querySelector('[data-f="body"]'); if (!ta || !modal) return;
@@ -1993,6 +2021,7 @@ function insertAtCaret(text){
   const nv = value.slice(0, a) + text + value.slice(b);
   ta.value = nv; modal.draft.body = nv; ta.focus();
   const c = a + text.length; ta.setSelectionRange(c, c);
+  syncHl(ta);
 }
 function closeLinkMenu(){ const m = document.getElementById('linkMenu'); if (m) m.remove(); }
 let swIdx = 0;
@@ -2107,6 +2136,7 @@ function mdMark(kind){
   ta.value = nv; modal.draft.body = nv; ta.focus();
   if (ss === se){ const c = lineStart + out.length; ta.setSelectionRange(c, c); }   // 한 줄이면 커서를 끝에
   else ta.setSelectionRange(lineStart, lineStart + out.length);                      // 여러 줄이면 블록 선택
+  syncHl(ta);
 }
 const INDENT = '  ';                                    // 한 단계 = 2칸
 const levelStyle = lvl => ['dot','paren','circle'][lvl % 3];
