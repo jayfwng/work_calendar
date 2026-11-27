@@ -284,14 +284,21 @@ textarea.note-body-ta{font-size:var(--note-fs)}
 .ntpl-head{font-size:12px;font-weight:700;color:var(--muted);padding:2px 4px 8px}
 .ntpl-row{display:flex;align-items:center;gap:2px}
 .ntpl-row .link-item{flex:1}
-.note-edit-wrap{display:flex;flex-direction:column}
-.note-prev{display:none}
-.prev-title{font-size:19px;font-weight:700;margin-bottom:6px}
-@media (min-width:860px){
-  .note-edit-wrap.split{flex-direction:row;gap:12px;align-items:stretch}
-  .note-edit-wrap.split .note-body-ta{flex:1;min-height:52vh}
-  .note-edit-wrap.split .note-prev{display:block;flex:1;min-width:0;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--bg);max-height:58vh}
-}
+.hl-wrap{position:relative}
+.hl-ta{position:relative;z-index:1;background:transparent;color:transparent;caret-color:var(--text)}
+.hl-ta::selection{background:var(--accent-weak)}
+.hl-backdrop{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;color:var(--text);
+  white-space:pre-wrap;overflow-wrap:anywhere;word-break:normal;border:1px solid transparent;border-radius:10px;
+  padding:9px 11px;font-size:var(--note-fs);line-height:1.7;tab-size:2;font-family:inherit}
+.hl-backdrop .hl-title{font-weight:700;color:var(--text)}
+.hl-backdrop .hl-mk{color:var(--muted);opacity:.65}
+.hl-backdrop .hl-num{color:var(--accent);font-weight:600}
+.hl-backdrop .hl-chk{color:var(--ok)}
+.hl-backdrop .hl-link{color:var(--accent)}
+.hl-backdrop .hl-tag{color:var(--accent)}
+.hl-backdrop .hl-u{text-decoration:underline;text-underline-offset:2px}
+.hl-backdrop mark{background:#ffe88a;color:inherit;border-radius:2px}
+:root[data-theme="dark"] .hl-backdrop mark,:root:not([data-theme="light"]) .hl-backdrop mark{background:#6b5a12}
 .tw-pin{color:#e8a500;font-size:12px;margin-left:4px}
 .tree-sec{font-size:11px;font-weight:700;color:var(--muted);padding:4px 6px 2px;letter-spacing:.02em}
 .tree-sec-gap{height:8px;border-bottom:1px solid var(--line);margin:2px 4px 6px}
@@ -955,12 +962,10 @@ function renderModal(){
       <button class="btn sm" data-act="md-date" title="오늘 날짜 삽입">📅</button>
       <button class="btn sm" data-act="md-hr" title="구분선">─</button>
       <button class="btn sm" data-act="link-menu" title="메모 링크 [[ ]]">🔗</button>
-      <span class="spacer"></span>
-      <button class="btn sm ${state.settings.notePreview?'primary':''}" data-act="toggle-preview" title="미리보기">👁</button>
     </div>
-    <div class="note-edit-wrap ${state.settings.notePreview?'split':''}">
-      <textarea class="inp note-area note-body-ta" data-f="body" placeholder="첫 줄이 제목이 돼요.&#10;그 아래에 내용을 적으세요.">${esc(d.body||'')}</textarea>
-      ${state.settings.notePreview ? `<div class="note-prev" id="notePrev">${notePrevHtml(d.body||'')}</div>` : ''}
+    <div class="hl-wrap">
+      <div class="hl-backdrop" id="noteHl" aria-hidden="true">${highlightSource(d.body||'')}</div>
+      <textarea class="inp note-area note-body-ta hl-ta" data-f="body" spellcheck="false" placeholder="첫 줄이 제목이 돼요.&#10;그 아래에 내용을 적으세요.">${esc(d.body||'')}</textarea>
     </div>
     <div class="hint">Enter 목록 자동 이어쓰기 · Tab 들여쓰기 · Ctrl+Enter / Ctrl+S 저장</div>
     <div class="actions">
@@ -1684,7 +1689,7 @@ document.addEventListener('input', e => {
     return;
   }
   if (!modal) return;
-  if (t.dataset.f){ modal.draft[t.dataset.f] = t.value; if (t.dataset.f === 'body'){ const pv = document.getElementById('notePrev'); if (pv) pv.innerHTML = notePrevHtml(t.value); } }
+  if (t.dataset.f){ modal.draft[t.dataset.f] = t.value; if (t.dataset.f === 'body'){ const hl = document.getElementById('noteHl'); if (hl){ hl.innerHTML = highlightSource(t.value); hl.scrollTop = t.scrollTop; } } }
   else if (t.dataset.nstep){ modal.draft.steps[Number(t.dataset.i)][t.dataset.nstep] = t.value; }
   else if (t.dataset.le){ modal.draft[t.dataset.le][Number(t.dataset.i)].text = t.value; }
 });
@@ -1732,7 +1737,25 @@ function backlinksOf(note){
   const re = new RegExp('\\[\\[\\s*' + reEsc(title) + '\\s*\\]\\]');
   return state.notes.filter(n => !n.trashed && n.id !== note.id && re.test(n.body||''));
 }
-function notePrevHtml(body){ return `<div class="prev-title">${esc(noteTitle({ body }))}</div><div class="md-view">${renderNoteBody(body, (modal&&modal.draft&&modal.draft.id)||'', 1)}</div>`; }
+function hlLine(line, isTitle){
+  if (isTitle) return `<span class="hl-title">${esc(line) || '\u200b'}</span>`;
+  const indent = line.match(/^ */)[0]; let rest = line.slice(indent.length);
+  let prefix = esc(indent), m;
+  if (m = rest.match(/^(#{1,3}\s)/)){ prefix += `<span class="hl-mk">${esc(m[1])}</span>`; rest = rest.slice(m[1].length); }
+  else if (m = rest.match(/^(\[[ xX]\]\s)/)){ prefix += `<span class="hl-chk">${esc(m[1])}</span>`; rest = rest.slice(m[1].length); }
+  else { const nm = numMarker(line); if (nm){ prefix += `<span class="hl-num">${esc(nm.mk)}</span>`; rest = rest.slice(nm.mk.length); }
+         else if (m = rest.match(/^([-•]\s)/)){ prefix += `<span class="hl-num">${esc(m[1])}</span>`; rest = rest.slice(m[1].length); } }
+  let h = esc(rest);
+  h = h.replace(/==([^=\n]+)==/g, '<span class="hl-mk">==</span><mark>$1</mark><span class="hl-mk">==</span>');
+  h = h.replace(/\*\*([^*\n]+)\*\*/g, '<span class="hl-mk">**</span><span class="hl-b">$1</span><span class="hl-mk">**</span>');
+  h = h.replace(/__([^_\n]+)__/g, '<span class="hl-mk">__</span><span class="hl-u">$1</span><span class="hl-mk">__</span>');
+  h = h.replace(/\[\[([^\[\]\n]+)\]\]/g, '<span class="hl-mk">[[</span><span class="hl-link">$1</span><span class="hl-mk">]]</span>');
+  h = h.replace(/(^|[\s(])#([0-9A-Za-z가-힣_]+)/g, '$1<span class="hl-tag">#$2</span>');
+  return (prefix + h) || '\u200b';
+}
+function highlightSource(text){
+  return String(text).split('\n').map((l, i) => hlLine(l, i === 0)).join('\n') + '\n';
+}
 function noteCardFull(nt){
   const back = backlinksOf(nt);
   const backHtml = back.length ? `<div class="v-sec-label backlinks-label">연결된 메모 · ${back.length}</div><div class="backlinks">${back.map(n => `<button class="backlink" data-act="note-link" data-title="${esc(noteTitle(n))}">${ICON.notes}<span>${esc(noteTitle(n))}</span></button>`).join('')}</div>` : '';
@@ -2454,6 +2477,7 @@ function syncSection(){
   <p class="note">다른 기기에서 설정 → 동기화 → “키로 연결”에 이 키를 입력하세요. 키는 서버에 저장되지 않아서 잃어버리면 서버 데이터를 풀 수 없어요(각 기기 데이터는 남아요). 메신저보다는 직접 보고 입력하는 걸 권해요.</p>`;
 }
 
+document.addEventListener('scroll', e => { const t = e.target; if (t && t.dataset && t.dataset.f === 'body'){ const hl = document.getElementById('noteHl'); if (hl){ hl.scrollTop = t.scrollTop; hl.scrollLeft = t.scrollLeft; } } }, true);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') scheduleSync(); });
 window.addEventListener('online', () => scheduleSync());
 setInterval(() => { if (document.visibilityState === 'visible') sync(false); }, 60000);
