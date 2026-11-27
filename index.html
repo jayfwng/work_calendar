@@ -461,6 +461,7 @@ textarea.note-body-ta{min-height:46vh;line-height:1.65}
 'use strict';
 
 /* ---------- 유틸 ---------- */
+const APP_VERSION = '2.00';      // 릴리스 버전 (CHANGELOG.md 참고). release.yml이 이 값을 읽어 빌드 이름을 정함
 const KEY = 'workcal.v1';
 const COLORS = ['#2f6fed','#1f9d55','#e8833a','#d93838','#8b5cf6','#0ea5a4','#6b7280'];
 const DOW = ['일','월','화','수','목','금','토'];
@@ -677,7 +678,7 @@ function card(ev, opt = {}){
       ${rk ? `<span class="handle" title="끌어서 순서 바꾸기">${ICON.grip}</span><span class="rank">${rk}</span>` : ''}
       <button class="check ${ev.done?'on':''}" data-act="toggle-ev" data-id="${ev.id}" aria-label="${ev.done?'완료 취소':'완료 처리'}">${ICON.check}</button>
       <button class="card-main" data-act="edit-ev" data-id="${ev.id}">
-        <span class="card-title">${esc(ev.title) || '(제목 없음)'}</span>
+        <span class="card-title">${esc((ev.title||'').trim()) || '(제목 없음)'}</span>
         <span class="card-meta">${esc(meta.join(' · '))}${tpl ? ` <span class="tag">${esc(tpl.name)}</span>` : ''}</span>
         ${p.total ? `<span class="bar"><i style="width:${p.pct}%"></i></span>` : ''}
       </button>
@@ -837,7 +838,8 @@ function viewSettings(){
     <div class="prow"><div class="grow"><div class="t">완료된 지난 일정 정리</div><div class="d">오늘 이전 + 완료된 일정을 삭제</div></div><button class="btn sm" data-act="clean-done">정리</button></div>
     <div class="prow"><div class="grow"><div class="t" style="color:var(--danger)">전체 초기화</div><div class="d">모든 일정과 템플릿 삭제</div></div><button class="btn sm danger" data-act="reset">초기화</button></div>
   </div>
-  <p class="note">${storageOK ? '' : '⚠️ 지금 브라우저 저장소를 쓸 수 없어서 새로고침하면 데이터가 사라져요. '}${syncCfg.key ? '데이터는 이 기기에 저장되고, 동기화할 때는 암호화된 상태로만 서버에 올라가요.' : '데이터는 이 기기의 이 브라우저 안에만 저장되고 어디로도 전송되지 않아요.'} 브라우저 데이터를 지우면 함께 지워지니 가끔 백업을 내보내 두세요.</p>`;
+  <p class="note">${storageOK ? '' : '⚠️ 지금 브라우저 저장소를 쓸 수 없어서 새로고침하면 데이터가 사라져요. '}${syncCfg.key ? '데이터는 이 기기에 저장되고, 동기화할 때는 암호화된 상태로만 서버에 올라가요.' : '데이터는 이 기기의 이 브라우저 안에만 저장되고 어디로도 전송되지 않아요.'} 브라우저 데이터를 지우면 함께 지워지니 가끔 백업을 내보내 두세요.</p>
+  <p class="note" style="text-align:center;opacity:.7">업무 캘린더 v${esc(APP_VERSION)}</p>`;
 }
 
 /* ---------- 모달: 일정 / 템플릿 편집 ---------- */
@@ -1770,7 +1772,7 @@ function folderPath(fid){                                // "업무 > 하위" �
   return names.join(' › ');
 }
 const stripMk = s => String(s).replace(/^\s*(#{1,3}\s|\d+\.\s|[-•]\s|\[[ xX]\]\s)/, '').trim();
-function noteTitle(nt){ return stripMk(String(nt.body||'').split('\n')[0] || '') || '(제목 없음)'; }
+function noteTitle(nt){ return stripMk(String(nt.body||'').split('\n')[0] || '').trim() || '(제목 없음)'; }
 const reEsc = x => String(x).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 function backlinksOf(note){
   const title = noteTitle(note); if (title === '(제목 없음)') return [];
