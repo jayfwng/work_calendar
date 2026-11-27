@@ -1551,8 +1551,14 @@ document.addEventListener('dragover', e => {
   if (!row && !scroll) return;
   e.preventDefault(); e.dataTransfer.dropEffect = 'move'; clearTreeDrop();
   if (row && row.dataset.fdrop != null){                     // 폴더 위
-    if (tdrag.kind === 'folder' && (tdrag.id === row.dataset.fdrop || descendantFolderIds(tdrag.id).includes(row.dataset.fdrop))) return;  // 자기 자신/하위로는 불가
-    row.classList.add('drop-into');
+    const tf = row.dataset.fdrop;
+    if (tdrag.kind === 'folder'){
+      if (tdrag.id === tf || descendantFolderIds(tdrag.id).includes(tf)) return;   // 자기 자신/하위로는 불가
+      const rc = row.getBoundingClientRect(), y = e.clientY - rc.top, h = rc.height;
+      row.classList.add(y < h*0.3 ? 'drop-before' : y > h*0.7 ? 'drop-after' : 'drop-into');  // 위/아래=형제 재배치, 가운데=안으로
+    } else {
+      row.classList.add('drop-into');                        // 노트 → 폴더 안으로
+    }
   } else if (row && row.dataset.ndrag && tdrag.kind === 'note'){
     if (row.dataset.ndrag === tdrag.id) return;
     const rc = row.getBoundingClientRect();
@@ -1571,7 +1577,11 @@ document.addEventListener('drop', e => {
     if (row && row.dataset.fdrop != null){
       const tf = row.dataset.fdrop;
       if (tf === d.id || descendantFolderIds(d.id).includes(tf)) return;  // 순환 방지
-      f.parentId = tf; delete f.order; ui.folderOpen.add(tf); save(); render(); toast('폴더를 옮겼어요');
+      const tgt = folderById(tf); if (!tgt) return;
+      const rc = row.getBoundingClientRect(), y = e.clientY - rc.top, h = rc.height;
+      if (y < h*0.3) reorderFolderNear(f, tgt, false);        // 앞에
+      else if (y > h*0.7) reorderFolderNear(f, tgt, true);    // 뒤에
+      else { f.parentId = tf; delete f.order; ui.folderOpen.add(tf); save(); render(); toast('폴더 안으로 옮겼어요'); }  // 안으로
     } else if (scroll && !row){ f.parentId = ''; delete f.order; save(); render(); toast('최상위로 옮겼어요'); }
     return;
   }
@@ -1599,6 +1609,18 @@ function reorderNoteNear(note, target, after){
   list.splice(Math.max(0, idx), 0, note);
   list.forEach((n, i) => { n.order = i; });
   ui.noteSel = note.id; save(); render();
+}
+function reorderFolderNear(folder, target, after){
+  if (folder.id === target.id) return;
+  if (descendantFolderIds(folder.id).includes(target.id)) return;  // 자기 하위로는 불가
+  const pid = target.parentId || '';
+  folder.parentId = pid; delete folder.order;
+  const list = childFolders(pid).filter(f => f.id !== folder.id);
+  let idx = list.findIndex(f => f.id === target.id);
+  if (after) idx += 1;
+  list.splice(Math.max(0, idx), 0, folder);
+  list.forEach((f, i) => { f.order = i; });
+  save(); render();
 }
 document.addEventListener('dblclick', e => {
   if (!e.target.closest) return;
