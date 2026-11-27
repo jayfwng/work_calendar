@@ -210,6 +210,64 @@ textarea.inp{min-height:70px;resize:vertical}
 .md-table th,.md-table td{border:1px solid var(--line);padding:6px 11px;text-align:left;vertical-align:top;min-width:60px}
 .md-table th{background:var(--surface2);font-weight:700;white-space:nowrap}
 .md-table tbody tr:nth-child(even) td{background:color-mix(in srgb,var(--surface2) 45%,transparent)}
+/* 데이터베이스 (표/보드) */
+.db-row .tw-ic.note{color:var(--accent)}
+.db-head{align-items:center}
+.db-name-inp{border:0;background:none;font:inherit;font-size:22px;font-weight:700;letter-spacing:-.01em;color:var(--text);width:100%;padding:2px 2px;border-radius:6px}
+.db-name-inp:focus{outline:none;background:var(--surface2)}
+.db-head-acts{flex:none;display:flex;gap:6px;align-items:center}
+.db-viewseg button{display:inline-flex;align-items:center;gap:4px}
+.db-viewseg svg{width:15px;height:15px}
+.db-table-wrap2{overflow-x:auto;border:1px solid var(--line);border-radius:12px;margin:4px 0 10px}
+.db-table2{border-collapse:collapse;width:100%;font-size:14px}
+.db-table2 th,.db-table2 td{border:1px solid var(--line);padding:0;vertical-align:middle}
+.db-th{background:var(--surface2);text-align:left;white-space:nowrap}
+.db-colh{width:100%;border:0;background:none;cursor:pointer;padding:8px 10px;display:flex;align-items:center;gap:6px;font:inherit;color:var(--text);font-weight:700}
+.db-colh:hover{background:color-mix(in srgb,var(--accent) 10%,transparent)}
+.db-coltype{font-size:10px;font-weight:600;color:var(--muted);background:var(--surface);border-radius:5px;padding:0 5px}
+.db-th.db-addcol{width:38px;text-align:center}
+.db-td{min-width:90px}
+.db-cellinp{width:100%;border:0;background:none;padding:8px 10px;font:inherit;color:var(--text);outline:none}
+.db-cellinp:focus{background:color-mix(in srgb,var(--accent) 8%,transparent);box-shadow:inset 0 0 0 1.5px var(--accent)}
+.db-sel{width:100%;border:0;background:none;padding:7px 8px;font:inherit;color:var(--text);outline:none;cursor:pointer;border-radius:0}
+.db-td.db-rowdel{width:34px;text-align:center}
+.db-td.db-rowdel .icon-btn{opacity:0}
+.db-table2 tbody tr:hover .db-rowdel .icon-btn{opacity:.6}
+.db-empty-row{padding:16px;text-align:center;color:var(--muted);font-size:13px}
+.db-addrow{margin-bottom:12px}
+@media (hover:none){ .db-td.db-rowdel .icon-btn{opacity:.6} }
+/* 보드 */
+.db-board-by{font-size:13px;color:var(--muted);margin:2px 0 10px;display:flex;align-items:center;gap:6px}
+.db-board-by select{border:1px solid var(--line);border-radius:8px;padding:4px 8px;background:var(--bg)}
+.db-board-empty{background:var(--surface);border:1px dashed var(--line);border-radius:12px;padding:22px;text-align:center;color:var(--muted);font-size:14px;line-height:1.7}
+.db-board{display:flex;gap:12px;overflow-x:auto;padding-bottom:10px;align-items:flex-start}
+.db-col{flex:0 0 240px;background:var(--surface2);border-radius:12px;padding:8px;min-width:0}
+.db-col-h{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:700;padding:4px 6px 8px}
+.db-dot{width:9px;height:9px;border-radius:50%;flex:none}
+.db-col-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.db-col-n{margin-left:auto;color:var(--muted);font-size:12px}
+.db-col-body{display:flex;flex-direction:column;gap:7px;min-height:30px;border-radius:8px;padding:2px}
+.db-col-body.drop{background:color-mix(in srgb,var(--accent) 14%,transparent);outline:1.5px dashed var(--accent)}
+.db-card{background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:9px 11px;box-shadow:var(--shadow);cursor:grab}
+.db-card.dragging{opacity:.4}
+.db-card-t{font-weight:600;font-size:14px;word-break:break-word}
+.db-card-meta{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.db-chip{font-size:11px;padding:1px 7px;border-radius:20px;background:var(--surface2);color:var(--text);white-space:nowrap}
+.db-chip.plain{background:var(--surface2);color:var(--muted)}
+.db-addcard{border:0;background:none;color:var(--muted);text-align:left;padding:6px;font-size:13px;cursor:pointer;border-radius:7px}
+.db-addcard:hover{background:var(--surface);color:var(--text)}
+/* 열 메뉴 */
+.col-menu{width:236px;display:flex;flex-direction:column;gap:8px}
+.col-types{display:flex;gap:4px}
+.col-types .btn{flex:1}
+.col-opts{display:flex;flex-direction:column;gap:4px;border-top:1px solid var(--line);padding-top:8px}
+.col-opt{display:flex;align-items:center;gap:7px;font-size:13px}
+.col-opt-n{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.col-opt-add .inp{padding:6px 9px;font-size:13px}
+.col-del{justify-content:center;margin-top:2px;display:flex;align-items:center;gap:5px}
+.col-del svg{width:15px;height:15px}
+.db-modal-body{margin-top:10px}
+@media (max-width:1023px){ .db-board{flex-direction:column} .db-col{flex:1 1 auto;width:100%} }
 .tree-scroll{flex:1;min-height:0;overflow:auto}
 .tree-row{display:flex;align-items:center;gap:2px;border-radius:8px;padding-left:calc(var(--d,0) * 16px)}
 .tree-row:hover{background:var(--surface2)}
@@ -470,7 +528,7 @@ textarea.note-body-ta{min-height:46vh;line-height:1.65}
 'use strict';
 
 /* ---------- 유틸 ---------- */
-const APP_VERSION = '2.02';      // 릴리스 버전 (CHANGELOG.md 참고). release.yml이 이 값을 읽어 빌드 이름을 정함
+const APP_VERSION = '2.03';      // 릴리스 버전 (CHANGELOG.md 참고). release.yml이 이 값을 읽어 빌드 이름을 정함
 const KEY = 'workcal.v1';
 const COLORS = ['#2f6fed','#1f9d55','#e8833a','#d93838','#8b5cf6','#0ea5a4','#6b7280'];
 const DOW = ['일','월','화','수','목','금','토'];
@@ -509,6 +567,7 @@ const ICON = {
   restore:'<svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8m0-5v5h5"/></svg>',
   move:'<svg viewBox="0 0 24 24"><path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l3 3 3-3M19 9l3 3-3 3M2 12h20M12 2v20"/></svg>',
   edit:'<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4z"/></svg>',
+  db:'<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M3 15h18M9 4v16"/></svg>',
 };
 
 /* ---------- 데이터 ---------- */
@@ -526,6 +585,24 @@ function defaultState(){
       body:'입찰 프로세스\n1. 현장 설명회\n  - 현장설명서 첨부\n  - 참석 여부 체크\n2. 견적\n  - 업체가 시스템에 견적 입력 → 금액 검토 후 내부 공유\n3. 서류 준비\n  - 사업자등록증, 인감증명서 등\n4. 제출 / 개찰\n  - 마감 시간 전 제출\n  - 개찰 결과 확인\n\n[ ] 공고 확인 후 담당자 공유\n[ ] 마감 시간 재확인'
     }],
     folders:[{ id:'fld-proc', name:'업무 프로세스', parentId:'', updatedAt:0 }],
+    databases:[{
+      id:'db-bid', name:'입찰 추적', folderId:'fld-proc', updatedAt:0, view:'board', groupBy:'c-status',
+      columns:[
+        { id:'c-title', name:'현장', type:'text' },
+        { id:'c-owner', name:'발주처', type:'text' },
+        { id:'c-status', name:'상태', type:'select', options:[
+          { id:'o-todo', name:'할 일', color:'#6b7280' },
+          { id:'o-doing', name:'진행중', color:'#2f6fed' },
+          { id:'o-review', name:'검토', color:'#e8833a' },
+          { id:'o-done', name:'완료', color:'#1f9d55' } ] },
+        { id:'c-due', name:'마감', type:'date' },
+      ],
+      rows:[
+        { id:'r1', order:0, cells:{ 'c-title':'A현장 전기', 'c-owner':'OO공사', 'c-status':'o-doing',  'c-due':'2026-12-05' } },
+        { id:'r2', order:1, cells:{ 'c-title':'B빌딩 소방', 'c-owner':'△△건설', 'c-status':'o-todo',   'c-due':'2026-12-02' } },
+        { id:'r3', order:2, cells:{ 'c-title':'C타워 통신', 'c-owner':'□□개발', 'c-status':'o-review', 'c-due':'2026-12-10' } },
+      ]
+    }],
     noteTemplates:[{ id:'ntpl-bid', name:'입찰 프로세스', updatedAt:0, body:'입찰 프로세스\n1. 현장 설명회\n  1) 현장설명서 첨부\n  2) 참석 여부 체크\n2. 견적\n3. 서류 준비\n4. 제출 / 개찰\n\n[ ] 공고번호 기록\n[ ] 마감 시간 재확인' }],
     deleted:{},                 // 동기화용 삭제 기록 { id: 삭제시각 }
     settings:{ weekStart:1, theme:'system', customColors:[], noteFont:'m' }
@@ -567,6 +644,17 @@ function normalize(s){
     noteTemplates: (Array.isArray(s.noteTemplates) ? s.noteTemplates : d.noteTemplates).map(tp => ({
       id:tp.id||uid(), name:String(tp.name||''), body:String(tp.body||''), updatedAt:+tp.updatedAt||0
     })),
+    databases: (Array.isArray(s.databases) ? s.databases : (Array.isArray(s.notes) ? [] : d.databases)).map(db => ({
+      id:db.id||uid(), name:String(db.name||'데이터베이스'), folderId:String(db.folderId||''),
+      trashed:!!db.trashed, trashedAt:+db.trashedAt||0, updatedAt:+db.updatedAt||0,
+      view: db.view==='board' ? 'board' : 'table', groupBy:String(db.groupBy||''),
+      columns:(Array.isArray(db.columns)?db.columns:[]).map(c => ({
+        id:c.id||uid(), name:String(c.name||''), type:['text','select','date'].includes(c.type)?c.type:'text',
+        ...(c.type==='select' ? { options:(Array.isArray(c.options)?c.options:[]).map(o => ({ id:o.id||uid(), name:String(o.name||''), color:/^#[0-9a-f]{6}$/i.test(o.color)?o.color.toLowerCase():COLORS[0] })) } : {})
+      })),
+      rows:(Array.isArray(db.rows)?db.rows:[]).map((r,i) => ({ id:r.id||uid(), order:Number.isFinite(r.order)?r.order:i, cells:(r.cells&&typeof r.cells==='object')?{...r.cells}:{} })),
+      ...(Number.isFinite(db.order)?{order:db.order}:{})
+    })),
     folders: (Array.isArray(s.folders) ? s.folders : (Array.isArray(s.notes) ? [] : d.folders)).map(f => ({
       id:f.id||uid(), name:String(f.name||''), parentId:String(f.parentId||''),
       trashed:!!f.trashed, trashedAt:+f.trashedAt||0, updatedAt:+f.updatedAt||0,
@@ -591,10 +679,10 @@ function persist(){
 /* 바뀐 항목에 수정 시각을, 사라진 항목에 삭제 기록을 남긴다 (동기화 병합용) */
 const stripTs = o => { const { updatedAt, ...rest } = o; return JSON.stringify(rest); };
 let snap = new Map();
-function snapshot(){ snap = new Map(); for (const x of [...state.events, ...state.templates, ...state.notes, ...state.folders, ...state.noteTemplates]) snap.set(x.id, stripTs(x)); }
+function snapshot(){ snap = new Map(); for (const x of [...state.events, ...state.templates, ...state.notes, ...state.folders, ...state.noteTemplates, ...state.databases]) snap.set(x.id, stripTs(x)); }
 function stamp(){
   const now = Date.now(), seen = new Set();
-  for (const x of [...state.events, ...state.templates, ...state.notes, ...state.folders, ...state.noteTemplates]){
+  for (const x of [...state.events, ...state.templates, ...state.notes, ...state.folders, ...state.noteTemplates, ...state.databases]){
     seen.add(x.id);
     if (snap.get(x.id) !== stripTs(x)) x.updatedAt = now;
   }
@@ -616,6 +704,7 @@ const ui = {
   tplOpen: false,            // 설정: 템플릿 섹션 펼침 여부
   folderOpen: new Set(['fld-proc']),   // 펼친 폴더
   noteSel: '',               // 컴퓨터 화면에서 선택한 노트
+  dbSel: '',                 // 컴퓨터 화면에서 선택한 데이터베이스
   notesTrash: false,         // 메모 탭 휴지통 보기
   noteSearch: '',            // 메모 검색어
 };
@@ -961,7 +1050,7 @@ function renderModal(){
     <div class="field"><input class="inp" data-f="name" value="${esc(d.name)}" placeholder="폴더 이름 (예: 자재, 입찰)"></div>
     <div class="actions"><span class="spacer"></span><button class="btn" data-act="close">취소</button><button class="btn primary" data-act="save-folder">저장</button></div>`;
   } else if (modal.type === 'move'){
-    const note = state.notes.find(n => n.id === modal.noteId);
+    const note = state.notes.find(n => n.id === modal.noteId) || state.databases.find(d => d.id === modal.noteId);
     const cur = note ? (note.folderId||'') : '';
     const opt = (fid, label, depth) => `<button class="btn move-opt ${fid===cur?'on':''}" data-act="move-to" data-folder="${fid}" style="padding-left:${12+depth*16}px">${esc(label)}${fid===cur?' ✓':''}</button>`;
     const walk = (pid, depth) => childFolders(pid).map(f => opt(f.id, f.name, depth) + walk(f.id, depth+1)).join('');
@@ -975,6 +1064,15 @@ function renderModal(){
     <div class="sheet-h"><h2 class="v-title">${esc(noteTitle(nt))}</h2>
       <div style="display:flex;gap:4px"><button class="icon-btn ${nt.pinned?'star-on':''}" data-act="pin-note" data-id="${modal.id}" title="고정">${ICON.pin}</button><button class="icon-btn" data-act="dup-note" data-id="${modal.id}" title="복제">${ICON.copy}</button><button class="btn sm" data-act="edit-note" data-id="${modal.id}">${ICON.edit} 편집</button><button class="icon-btn" data-act="close" aria-label="닫기">${ICON.x}</button></div></div>
     <div class="note-view">${noteCardFull(nt)}</div>`;
+  } else if (modal.type === 'db'){
+    const db = dbById(modal.id);
+    body = !db ? `<div class="sheet-h"><h2>표</h2><button class="icon-btn" data-act="close" aria-label="닫기">${ICON.x}</button></div><div class="empty" style="margin:16px">표를 찾을 수 없어요.</div>`
+      : `<div class="sheet-h">
+          <h2><input class="db-name-inp" data-db-name="${db.id}" value="${esc(db.name)}" placeholder="제목 없는 표"></h2>
+          <div style="display:flex;gap:6px;align-items:center;flex:none">
+            <div class="seg db-viewseg"><button class="${db.view==='table'?'on':''}" data-act="db-view" data-id="${db.id}" data-v="table">표</button><button class="${db.view==='board'?'on':''}" data-act="db-view" data-id="${db.id}" data-v="board">보드</button></div>
+            <button class="icon-btn" data-act="close" aria-label="닫기">${ICON.x}</button></div></div>
+        <div class="db-modal-body">${db.view==='board' ? dbBoard(db) : dbTable(db)}</div>`;
   } else if (modal.type === 'note'){
     const d = modal.draft;
     body = `
@@ -1168,6 +1266,7 @@ function render(){
   document.getElementById('side').innerHTML = viewSide();
   document.getElementById('todo').innerHTML = viewTodo();
   applyTheme();
+  if (modal && modal.type === 'db') renderModal();          // 폰: 열린 DB 모달도 함께 갱신
   if (ui.view === 'month') requestAnimationFrame(() => requestAnimationFrame(fitMonthCells));
 }
 // 데스크톱 월별: 칸 높이에 들어갈 만큼만 일정 칩을 보이고 나머지는 +N 으로 접는다
@@ -1367,8 +1466,24 @@ document.addEventListener('click', e => {
     case 'view-note': openNoteView(id); break;
     case 'edit-note': openNote(id); break;
     case 'open-note':
-      if (isDesk()){ ui.noteSel = id; render(); } else openNoteView(id);
+      if (isDesk()){ ui.noteSel = id; ui.dbSel = ''; render(); } else openNoteView(id);
       break;
+    case 'new-db': newDatabase(el.dataset.folder || ''); break;
+    case 'open-db':
+      if (isDesk()){ ui.dbSel = id; ui.noteSel = ''; render(); } else openDbView(id);
+      break;
+    case 'db-view': { const db = dbById(id); if (db){ db.view = el.dataset.v; save(); render(); } break; }
+    case 'db-addrow': { const db = dbById(id); if (db){ db.rows.push({ id:uid(), order:db.rows.length, cells:{} }); save(); render(); } break; }
+    case 'db-delrow': { const db = dbById(id); if (db){ db.rows = db.rows.filter(r => r.id !== el.dataset.row); save(); render(); } break; }
+    case 'db-addcol': { const db = dbById(id); if (db){ db.columns.push({ id:uid(), name:'새 열', type:'text' }); save(); render(); } break; }
+    case 'db-colmenu': openColMenu(id, el.dataset.col); break;
+    case 'db-coltype': changeColType(id, el.dataset.col, el.dataset.v); break;
+    case 'db-delcol': deleteCol(id, el.dataset.col); break;
+    case 'db-delopt': deleteColOption(id, el.dataset.col, el.dataset.opt); break;
+    case 'db-addcard': { const db = dbById(id); const gcol = db && db.columns.find(c => c.id === db.groupBy && c.type==='select'); const r = { id:uid(), order:db?db.rows.length:0, cells:{} }; if (db && gcol && el.dataset.opt) r.cells[gcol.id] = el.dataset.opt; if (db){ db.rows.push(r); save(); render(); } break; }
+    case 'trash-db': trashDb(id); break;
+    case 'restore-db': { const db = state.databases.find(d=>d.id===id); if(db){ db.trashed=false; save(); render(); } break; }
+    case 'purge-db': { state.databases = state.databases.filter(d=>d.id!==id); state.deleted[id]=Date.now(); save(); render(); break; }
     case 'save-note': saveNote(); break;
     case 'folder-toggle': ui.folderOpen.has(id) ? ui.folderOpen.delete(id) : ui.folderOpen.add(id); render(); break;
     case 'new-folder': openFolderEdit(null, el.dataset.parent || ''); break;
@@ -1377,7 +1492,7 @@ document.addEventListener('click', e => {
     case 'trash-folder': trashFolder(id); break;
     case 'trash-note': trashNote(id); break;
     case 'move-note': openMove(id); break;
-    case 'move-to': { const n = state.notes.find(x=>x.id===modal.noteId); if(n){ n.folderId = el.dataset.folder; ui.noteSel=n.id; save(); } closeModal(); render(); toast('옮겼어요'); break; }
+    case 'move-to': { const n = state.notes.find(x=>x.id===modal.noteId) || state.databases.find(x=>x.id===modal.noteId); if(n){ n.folderId = el.dataset.folder; if (state.databases.includes(n)) ui.dbSel=n.id; else ui.noteSel=n.id; save(); } closeModal(); render(); toast('옮겼어요'); break; }
     case 'notes-trash': ui.notesTrash = !ui.notesTrash; ui.noteSel=''; render(); break;
     case 'search-clear': ui.noteSearch = ''; render(); setTimeout(()=>{ const el=document.querySelector('[data-search]'); el&&el.focus(); },20); break;
     case 'restore-folder': restoreFolder(id); break;
@@ -1609,6 +1724,27 @@ document.addEventListener('drop', e => {
   } else if (scroll && !row){ moveNoteToFolder(note, ''); }
 });
 document.addEventListener('dragend', () => { if (tdrag){ tdrag = null; clearTreeDrop(); document.querySelectorAll('.dragging').forEach(x => x.classList.remove('dragging')); } });
+/* 보드 카드 드래그 → 다른 칼럼으로(상태 변경) */
+let dbDrag = null;
+document.addEventListener('dragstart', e => {
+  const c = e.target.closest && e.target.closest('[data-dbcard]'); if (!c) return;
+  dbDrag = { dbId:c.dataset.id, rowId:c.dataset.dbcard }; c.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', c.dataset.dbcard); } catch(x){}
+});
+document.addEventListener('dragover', e => {
+  if (!dbDrag) return; const col = e.target.closest && e.target.closest('[data-dbcoldrop]');
+  document.querySelectorAll('.db-col-body.drop').forEach(x => x.classList.remove('drop'));
+  if (col){ e.preventDefault(); e.dataTransfer.dropEffect = 'move'; col.classList.add('drop'); }
+});
+document.addEventListener('drop', e => {
+  if (!dbDrag) return; const col = e.target.closest && e.target.closest('[data-dbcoldrop]');
+  const d = dbDrag; dbDrag = null; document.querySelectorAll('.db-card.dragging,.db-col-body.drop').forEach(x => x.classList.remove('dragging','drop'));
+  if (!col) return; e.preventDefault();
+  const db = dbById(d.dbId); if (!db) return;
+  const row = db.rows.find(r => r.id === d.rowId), gcol = db.columns.find(c => c.id === db.groupBy);
+  if (row && gcol){ row.cells[gcol.id] = col.dataset.dbcoldrop; save(); render(); }
+});
+document.addEventListener('dragend', () => { if (dbDrag){ dbDrag = null; document.querySelectorAll('.db-card.dragging,.db-col-body.drop').forEach(x => x.classList.remove('dragging','drop')); } });
 function moveNoteToFolder(note, fid){
   const same = (note.folderId||'') === (fid||'');
   note.folderId = fid || ''; delete note.order;                 // 폴더 맨 끝으로
@@ -1718,6 +1854,7 @@ document.addEventListener('mousedown', e => {
   if (quick && !e.target.closest('#quick')) closeQuick();
   if (document.getElementById('linkMenu') && !e.target.closest('#linkMenu') && !e.target.closest('[data-act="link-menu"]')) closeLinkMenu();
   if (document.getElementById('slashMenu') && !e.target.closest('#slashMenu')) closeSlash();
+  if (document.getElementById('colMenu') && !e.target.closest('#colMenu') && !e.target.closest('[data-act="db-colmenu"]')) closeColMenu();
   if (document.getElementById('ntplMenu') && !e.target.closest('#ntplMenu') && !e.target.closest('[data-act="ntpl-menu"]')) closeNtplMenu();
   backdropDown = !!(e.target.classList && e.target.classList.contains('backdrop'));
 });
@@ -1744,14 +1881,30 @@ document.addEventListener('input', e => {
     else if (!ui.noteSearch && clr) clr.remove();
     return;
   }
+  if (t.dataset.dbcell !== undefined){                       // 표 셀(텍스트·날짜): 재렌더 없이 저장(포커스 유지)
+    const db = dbById(t.dataset.dbcell), row = db && db.rows.find(r => r.id === t.dataset.row);
+    if (row){ row.cells[t.dataset.col] = t.value; save(); }
+    return;
+  }
+  if (t.dataset.dbName !== undefined){                       // 표 제목
+    const db = dbById(t.dataset.dbName);
+    if (db){ db.name = t.value; save(); const nm = document.querySelector(`.db-row[data-db="${db.id}"] .tw-name`); if (nm) nm.textContent = db.name || '(표)'; }
+    return;
+  }
   if (!modal) return;
   if (t.dataset.f){ modal.draft[t.dataset.f] = t.value; if (t.dataset.f === 'body'){ const hl = document.getElementById('noteHl'); if (hl){ hl.innerHTML = highlightSource(t.value); hl.scrollTop = t.scrollTop; } updateSlash(t); } }
   else if (t.dataset.nstep){ modal.draft.steps[Number(t.dataset.i)][t.dataset.nstep] = t.value; }
   else if (t.dataset.le){ modal.draft[t.dataset.le][Number(t.dataset.i)].text = t.value; }
 });
 document.addEventListener('change', e => {
-  if (!modal) return;
   const t = e.target;
+  if (t.dataset.dbcell !== undefined){                       // 표 선택 셀 → 저장 후 재렌더(색/보드 반영)
+    const db = dbById(t.dataset.dbcell), row = db && db.rows.find(r => r.id === t.dataset.row);
+    if (row){ row.cells[t.dataset.col] = t.value; save(); render(); }
+    return;
+  }
+  if (t.dataset.act === 'db-groupby'){ const db = dbById(t.dataset.id); if (db){ db.groupBy = t.value; save(); render(); } return; }
+  if (!modal) return;
   if (t.dataset.colorAdd !== undefined){ addCustomColor(t.value); return; }
   if (t.matches('[data-tpl-select]')){
     if (t.value) applyTemplate(t.value, false); else modal.draft.templateId = '';
@@ -1878,7 +2031,7 @@ function folderTreeHtml(pid, depth){
   let html = '';
   for (const f of childFolders(pid)){
     const open = ui.folderOpen.has(f.id);
-    const count = childFolders(f.id).length + folderNotes(f.id).length;
+    const count = childFolders(f.id).length + folderNotes(f.id).length + folderDbs(f.id).length;
     html += `<div class="tree-row folder-row" style="--d:${depth}" data-fdrop="${f.id}" draggable="true" data-fdrag="${f.id}">
       <button class="tw-chev" data-act="folder-toggle" data-id="${f.id}" aria-label="${open?'접기':'펼치기'}">${count?(open?ICON.down:ICON.right):'<span class=\"tw-dot\"></span>'}</button>
       <button class="tw-main" data-act="folder-toggle" data-id="${f.id}"><span class="tw-ic">${ICON.folder}</span><span class="tw-name">${esc(f.name)||'(폴더)'}</span>${count?`<span class="tw-count">${count}</span>`:''}</button>
@@ -1891,6 +2044,7 @@ function folderTreeHtml(pid, depth){
     if (open){
       html += folderTreeHtml(f.id, depth+1);
       for (const n of folderNotes(f.id)) html += noteRowHtml(n, depth+1);
+      for (const db of folderDbs(f.id)) html += dbRowHtml(db, depth+1);
     }
   }
   return html;
@@ -1929,12 +2083,13 @@ function pinnedSection(){
 }
 function treePanel(){
   const rootNotes = folderNotes('');
-  const empty = !childFolders('').length && !rootNotes.length;
+  const empty = !childFolders('').length && !rootNotes.length && !folderDbs('').length;
   const searching = ui.noteSearch.trim();
   return `<div class="notes-tree">
     <div class="tree-toolbar">
       <button class="btn sm primary" data-act="new-note" data-folder="">+ 메모</button>
       <button class="btn sm" data-act="new-folder" data-parent="">+ 폴더</button>
+      <button class="btn sm" data-act="new-db" data-folder="" title="표/보드 데이터베이스">${ICON.db} 표</button>
       <span class="spacer"></span>
       <button class="btn sm" data-act="ntpl-menu" title="템플릿으로 새 메모">📄 템플릿</button>
       <button class="btn sm" data-act="daily-note" title="오늘 일지">🗓 일지</button>
@@ -1947,7 +2102,7 @@ function treePanel(){
     <div class="tree-scroll">
       ${searching ? searchResults(ui.noteSearch)
         : empty ? '<div class="empty" style="margin:8px">폴더나 메모를 만들어 시작하세요.</div>'
-        : pinnedSection() + folderTreeHtml('', 0) + rootNotes.map(n => noteRowHtml(n, 0)).join('')}
+        : pinnedSection() + folderTreeHtml('', 0) + rootNotes.map(n => noteRowHtml(n, 0)).join('') + folderDbs('').map(db => dbRowHtml(db, 0)).join('')}
     </div></div>`;
 }
 function trashPanel(){
@@ -1969,8 +2124,10 @@ function trashPanel(){
     </div></div>`;
 }
 function notesPane(){                                    // 컴퓨터 오른쪽 내용 패널
+  const db = ui.dbSel && dbById(ui.dbSel);
+  if (db) return `<div class="notes-pane db-pane">${dbPane(db)}</div>`;
   const sel = ui.noteSel && state.notes.find(n => n.id === ui.noteSel && !n.trashed);
-  if (!sel) return `<div class="notes-pane empty-pane"><div class="empty">왼쪽에서 메모를 선택하세요.</div></div>`;
+  if (!sel) return `<div class="notes-pane empty-pane"><div class="empty">왼쪽에서 메모나 표를 선택하세요.</div></div>`;
   return `<div class="notes-pane">
     <div class="pane-head"><div><div class="eyebrow">${esc(folderPath(sel.folderId)) || '메모'}</div><h2>${esc(noteTitle(sel))}</h2></div>
       <div style="display:flex;gap:4px;flex:none">
@@ -1989,6 +2146,155 @@ function openNoteView(id){
   modal = { type:'note-view', id };
   pushModalState(); renderModal();
 }
+
+/* ====================== 데이터베이스 (표 / 보드) ====================== */
+const dbById = id => state.databases.find(d => d.id === id && !d.trashed);
+const folderDbs = fid => state.databases.filter(d => (d.folderId||'') === fid && !d.trashed).sort(byOrd('name'));
+const dbTitleCol = db => db.columns.find(c => c.type === 'text') || db.columns[0];
+const colOption = (col, id) => (col.options || []).find(o => o.id === id);
+const dbRowsSorted = db => [...db.rows].sort((a,b) => ((a.order??1e9)-(b.order??1e9)));
+const colTypeLabel = t => ({ text:'텍스트', select:'선택', date:'날짜' }[t] || t);
+const tintBg = c => `color-mix(in srgb, ${c} 20%, transparent)`;
+function newDatabase(folderId){
+  const ct = uid(), cs = uid();
+  const db = { id:uid(), name:'새 표', folderId:folderId||'', view:'table', groupBy:cs,
+    columns:[
+      { id:ct, name:'제목', type:'text' },
+      { id:cs, name:'상태', type:'select', options:[
+        { id:uid(), name:'할 일', color:'#6b7280' }, { id:uid(), name:'진행중', color:'#2f6fed' }, { id:uid(), name:'완료', color:'#1f9d55' } ] },
+    ],
+    rows:[ { id:uid(), order:0, cells:{} }, { id:uid(), order:1, cells:{} } ] };
+  state.databases.push(db);
+  ui.dbSel = db.id; ui.noteSel = ''; ui.view = 'notes';
+  if (folderId) ui.folderOpen.add(folderId);
+  save(); render();
+  if (!isDesk()) openDbView(db.id);
+}
+function openDbView(id){ modal = { type:'db', id }; pushModalState(); renderModal(); }
+function dbRowHtml(db, depth){
+  return `<div class="tree-row db-row ${ui.dbSel===db.id?'sel':''}" style="--d:${depth}" data-db="${db.id}">
+    <span class="tw-chev"><span class="tw-dot"></span></span>
+    <button class="tw-main" data-act="open-db" data-id="${db.id}"><span class="tw-ic note">${ICON.db}</span><span class="tw-name">${esc(db.name)||'(표)'}</span></button>
+    <span class="tw-acts">
+      <button class="icon-btn xs" data-act="move-note" data-id="${db.id}" title="이동">${ICON.move}</button>
+      <button class="icon-btn xs" data-act="trash-db" data-id="${db.id}" title="휴지통으로">${ICON.trash}</button>
+    </span></div>`;
+}
+function dbPane(db){
+  return `<div class="pane-head db-head">
+      <div><div class="eyebrow">${esc(folderPath(db.folderId)) || '데이터베이스'}</div>
+        <h2><input class="db-name-inp" data-db-name="${db.id}" value="${esc(db.name)}" placeholder="제목 없는 표"></h2></div>
+      <div class="db-head-acts">
+        <div class="seg db-viewseg">
+          <button class="${db.view==='table'?'on':''}" data-act="db-view" data-id="${db.id}" data-v="table">${ICON.db} 표</button>
+          <button class="${db.view==='board'?'on':''}" data-act="db-view" data-id="${db.id}" data-v="board">▦ 보드</button>
+        </div>
+      </div></div>
+    ${db.view==='board' ? dbBoard(db) : dbTable(db)}`;
+}
+function dbTable(db){
+  const cols = db.columns, rows = dbRowsSorted(db);
+  const head = cols.map(c => `<th class="db-th"><button class="db-colh" data-act="db-colmenu" data-id="${db.id}" data-col="${c.id}"><span class="db-colname">${esc(c.name)||'(열)'}</span><span class="db-coltype">${colTypeLabel(c.type)}</span></button></th>`).join('')
+    + `<th class="db-th db-addcol"><button class="icon-btn xs" data-act="db-addcol" data-id="${db.id}" title="열 추가">${ICON.plus}</button></th>`;
+  const body = rows.length ? rows.map(r => `<tr>${cols.map(c => `<td class="db-td">${dbCellInput(db, c, r)}</td>`).join('')}<td class="db-td db-rowdel"><button class="icon-btn xs" data-act="db-delrow" data-id="${db.id}" data-row="${r.id}" title="행 삭제">${ICON.trash}</button></td></tr>`).join('')
+    : `<tr><td class="db-empty-row" colspan="${cols.length+1}">행이 없어요. 아래 “+ 행”으로 추가하세요.</td></tr>`;
+  return `<div class="db-table-wrap2"><table class="db-table2"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>
+    <button class="btn sm db-addrow" data-act="db-addrow" data-id="${db.id}">+ 행</button>`;
+}
+function dbCellInput(db, col, row){
+  const v = row.cells[col.id] || '';
+  const base = `data-dbcell="${db.id}" data-row="${row.id}" data-col="${col.id}"`;
+  if (col.type === 'select'){
+    const opt = colOption(col, v);
+    return `<select class="db-sel" ${base} style="${opt?`background:${tintBg(opt.color)};color:var(--text)`:''}">
+      <option value="">—</option>
+      ${(col.options||[]).map(o => `<option value="${o.id}" ${o.id===v?'selected':''}>${esc(o.name)}</option>`).join('')}
+    </select>`;
+  }
+  if (col.type === 'date') return `<input type="date" class="db-cellinp" ${base} value="${esc(v)}">`;
+  return `<input type="text" class="db-cellinp" ${base} value="${esc(v)}" placeholder="…">`;
+}
+function dbBoard(db){
+  const selCols = db.columns.filter(c => c.type === 'select');
+  const gcol = db.columns.find(c => c.id === db.groupBy && c.type === 'select') || selCols[0];
+  if (!gcol) return `<div class="db-board-empty">보드로 보려면 <b>선택</b> 유형 열이 필요해요.<br>표 보기에서 상태 같은 열을 추가한 뒤 다시 보드를 눌러주세요.</div>`;
+  const titleCol = dbTitleCol(db), rows = dbRowsSorted(db);
+  const groupSel = selCols.length > 1 ? `<div class="db-board-by">그룹 기준 <select class="db-cellinp" data-act="db-groupby" data-id="${db.id}">${selCols.map(c => `<option value="${c.id}" ${c.id===gcol.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select></div>` : '';
+  const buckets = [...gcol.options, { id:'', name:'미분류', color:'var(--line)' }];
+  const cols = buckets.map(o => {
+    const cards = rows.filter(r => (r.cells[gcol.id]||'') === o.id);
+    return `<div class="db-col">
+      <div class="db-col-h"><span class="db-dot" style="background:${o.color}"></span><span class="db-col-name">${esc(o.name)}</span><span class="db-col-n">${cards.length}</span></div>
+      <div class="db-col-body" data-dbcoldrop="${o.id}" data-id="${db.id}">
+        ${cards.map(r => dbCard(db, r, titleCol, gcol)).join('')}
+        <button class="db-addcard" data-act="db-addcard" data-id="${db.id}" data-opt="${o.id}">+ 카드</button>
+      </div></div>`;
+  }).join('');
+  return `${groupSel}<div class="db-board">${cols}</div>`;
+}
+function dbCard(db, row, titleCol, gcol){
+  const title = (titleCol && (row.cells[titleCol.id]||'').trim()) || '(제목 없음)';
+  const chips = db.columns.filter(c => c !== titleCol && c.id !== gcol.id).map(c => {
+    const v = row.cells[c.id]; if (!v) return '';
+    if (c.type === 'select'){ const o = colOption(c, v); return o ? `<span class="db-chip" style="background:${tintBg(o.color)}">${esc(o.name)}</span>` : ''; }
+    return `<span class="db-chip plain">${esc(v)}</span>`;
+  }).join('');
+  return `<div class="db-card" draggable="true" data-dbcard="${row.id}" data-id="${db.id}">
+    <div class="db-card-t">${esc(title)}</div>${chips ? `<div class="db-card-meta">${chips}</div>` : ''}</div>`;
+}
+/* 열 메뉴 (이름·유형·선택지·삭제) */
+function openColMenu(dbId, colId){
+  closeColMenu();
+  const db = dbById(dbId); if (!db) return;
+  const col = db.columns.find(c => c.id === colId); if (!col) return;
+  const box = document.createElement('div'); box.className = 'link-menu col-menu'; box.id = 'colMenu';
+  const types = [['text','텍스트'],['select','선택'],['date','날짜']];
+  box.innerHTML = `
+    <input class="inp" id="colNameInp" value="${esc(col.name)}" placeholder="열 이름">
+    <div class="col-types">${types.map(([v,l]) => `<button class="btn sm ${col.type===v?'primary':''}" data-act="db-coltype" data-id="${dbId}" data-col="${colId}" data-v="${v}">${l}</button>`).join('')}</div>
+    ${col.type==='select' ? `<div class="col-opts">${(col.options||[]).map(o => `<div class="col-opt"><span class="db-dot" style="background:${o.color}"></span><span class="col-opt-n">${esc(o.name)}</span><button class="icon-btn xs" data-act="db-delopt" data-id="${dbId}" data-col="${colId}" data-opt="${o.id}">${ICON.x}</button></div>`).join('')}
+      <div class="col-opt-add"><input class="inp" id="optNameInp" placeholder="선택지 추가 후 Enter"></div></div>` : ''}
+    <button class="btn sm danger col-del" data-act="db-delcol" data-id="${dbId}" data-col="${colId}">${ICON.trash} 열 삭제</button>`;
+  const btn = document.querySelector(`[data-act="db-colmenu"][data-col="${colId}"]`);
+  const r = (btn||document.body).getBoundingClientRect();
+  box.style.left = Math.round(Math.max(8, Math.min(r.left, innerWidth - 248))) + 'px';
+  box.style.top = Math.round(Math.min(r.bottom + 4, innerHeight - 40)) + 'px';
+  document.body.appendChild(box);
+  const nameInp = document.getElementById('colNameInp');
+  nameInp.addEventListener('input', () => { col.name = nameInp.value; save(); const h = document.querySelector(`[data-act="db-colmenu"][data-col="${colId}"] .db-colname`); if (h) h.textContent = col.name || '(열)'; });
+  const optInp = document.getElementById('optNameInp');
+  if (optInp) optInp.addEventListener('keydown', e => { if (e.key === 'Enter' && optInp.value.trim()){ e.preventDefault(); addColOption(dbId, colId, optInp.value.trim()); } });
+}
+function closeColMenu(){ const m = document.getElementById('colMenu'); if (m) m.remove(); }
+function addColOption(dbId, colId, name){
+  const db = dbById(dbId); const col = db && db.columns.find(c => c.id === colId); if (!col) return;
+  col.options = col.options || [];
+  col.options.push({ id:uid(), name, color: COLORS[col.options.length % COLORS.length] });
+  save(); render(); openColMenu(dbId, colId);
+  const i = document.getElementById('optNameInp'); if (i) i.focus();
+}
+function changeColType(dbId, colId, type){
+  const db = dbById(dbId); const col = db && db.columns.find(c => c.id === colId); if (!col || col.type === type) return;
+  col.type = type;
+  if (type === 'select'){ if (!Array.isArray(col.options) || !col.options.length) col.options = [{ id:uid(), name:'항목1', color:COLORS[0] }]; if (!db.columns.some(c => c.id === db.groupBy && c.type === 'select')) db.groupBy = col.id; }
+  else { delete col.options; if (db.groupBy === colId){ const alt = db.columns.find(c => c.type === 'select'); db.groupBy = alt ? alt.id : ''; } }
+  save(); render(); openColMenu(dbId, colId);
+}
+function deleteCol(dbId, colId){
+  const db = dbById(dbId); if (!db) return;
+  if (db.columns.length <= 1){ toast('열이 하나는 있어야 해요'); return; }
+  db.columns = db.columns.filter(c => c.id !== colId);
+  db.rows.forEach(r => { delete r.cells[colId]; });
+  if (db.groupBy === colId){ const alt = db.columns.find(c => c.type === 'select'); db.groupBy = alt ? alt.id : ''; }
+  closeColMenu(); save(); render();
+}
+function deleteColOption(dbId, colId, optId){
+  const db = dbById(dbId); const col = db && db.columns.find(c => c.id === colId); if (!col) return;
+  col.options = (col.options || []).filter(o => o.id !== optId);
+  db.rows.forEach(r => { if (r.cells[colId] === optId) r.cells[colId] = ''; });
+  save(); render(); openColMenu(dbId, colId);
+}
+function trashDb(id){ const db = state.databases.find(d => d.id === id); if (!db) return; db.trashed = true; db.trashedAt = Date.now(); if (ui.dbSel === id) ui.dbSel = ''; save(); render(); toast('표를 휴지통으로 옮겼어요'); }
 function openNote(id, folderId){
   const nt = id && state.notes.find(n => n.id === id);
   modal = { type:'note', isNew: !nt, draft: nt ? JSON.parse(JSON.stringify(nt)) : { id:uid(), title:'', steps:[{ text:'', desc:'' }], memo:'', folderId: folderId || '' } };
@@ -2546,10 +2852,10 @@ async function rpc(fn, body){
 }
 
 const byId = (p, q) => p.id < q.id ? -1 : p.id > q.id ? 1 : 0;
-const syncPart = s => ({ events:[...s.events].sort(byId), templates:[...s.templates].sort(byId), notes:[...s.notes].sort(byId), folders:[...s.folders].sort(byId), noteTemplates:[...s.noteTemplates].sort(byId), deleted:s.deleted });
+const syncPart = s => ({ events:[...s.events].sort(byId), templates:[...s.templates].sort(byId), notes:[...s.notes].sort(byId), folders:[...s.folders].sort(byId), noteTemplates:[...s.noteTemplates].sort(byId), databases:[...(s.databases||[])].sort(byId), deleted:s.deleted });
 function canon(d){
   const del = {}; Object.keys(d.deleted).sort().forEach(k => del[k] = d.deleted[k]);
-  return JSON.stringify({ e:[...d.events].sort(byId), t:[...d.templates].sort(byId), n:[...d.notes].sort(byId), f:[...d.folders].sort(byId), nt:[...d.noteTemplates].sort(byId), d:del });
+  return JSON.stringify({ e:[...d.events].sort(byId), t:[...d.templates].sort(byId), n:[...d.notes].sort(byId), f:[...d.folders].sort(byId), nt:[...d.noteTemplates].sort(byId), db:[...(d.databases||[])].sort(byId), d:del });
 }
 function mergeData(a, b){
   const deleted = { ...a.deleted };
@@ -2561,7 +2867,7 @@ function mergeData(a, b){
     for (const it of [...x, ...y]){ const c = m.get(it.id); if (!c || (it.updatedAt||0) > (c.updatedAt||0)) m.set(it.id, it); }
     return [...m.values()].filter(it => !(deleted[it.id] != null && deleted[it.id] >= (it.updatedAt||0))).sort(byId);
   };
-  return { events: pick(a.events, b.events), templates: pick(a.templates, b.templates), notes: pick(a.notes, b.notes), folders: pick(a.folders, b.folders), noteTemplates: pick(a.noteTemplates, b.noteTemplates), deleted };
+  return { events: pick(a.events, b.events), templates: pick(a.templates, b.templates), notes: pick(a.notes, b.notes), folders: pick(a.folders, b.folders), noteTemplates: pick(a.noteTemplates, b.noteTemplates), databases: pick(a.databases||[], b.databases||[]), deleted };
 }
 
 function scheduleSync(){
@@ -2583,11 +2889,11 @@ async function sync(manual){
       let merged = local, rdata = null;
       if (remote){
         const r = normalize(await decryptJSON(aes, remote.data));
-        rdata = { events:r.events, templates:r.templates, notes:r.notes, folders:r.folders, noteTemplates:r.noteTemplates, deleted:r.deleted };
+        rdata = { events:r.events, templates:r.templates, notes:r.notes, folders:r.folders, noteTemplates:r.noteTemplates, databases:r.databases, deleted:r.deleted };
         merged = mergeData(local, rdata);
       }
       if (canon(merged) !== canon(local)){                       // 다른 기기 변경분 반영
-        state.events = merged.events; state.templates = merged.templates; state.notes = merged.notes; state.folders = merged.folders; state.noteTemplates = merged.noteTemplates; state.deleted = merged.deleted;
+        state.events = merged.events; state.templates = merged.templates; state.notes = merged.notes; state.folders = merged.folders; state.noteTemplates = merged.noteTemplates; state.databases = merged.databases; state.deleted = merged.deleted;
         persist(); snapshot();
       }
       if (!rdata || canon(merged) !== canon(rdata)){             // 서버로 올릴 게 있으면 업로드
