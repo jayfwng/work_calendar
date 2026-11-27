@@ -1,5 +1,5 @@
 // 오프라인에서도 앱이 열리도록 앱 파일만 캐시한다. 동기화 요청(Supabase)은 캐시하지 않는다.
-const CACHE = 'workcal-v6';
+const CACHE = 'workcal-v7';
 const ASSETS = ['./', './index.html', './config.js', './manifest.webmanifest', './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png'];
 
 self.addEventListener('install', e => {
