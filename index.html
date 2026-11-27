@@ -245,8 +245,8 @@ textarea.inp{min-height:70px;resize:vertical}
   .notes-pane.empty-pane{display:grid;place-items:center}
   .pane-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin:0 0 10px}
   .pane-head h2{font-size:22px;margin:2px 0 0;letter-spacing:-.01em}
-  :root[data-view="notes"] .shell{grid-template-columns:var(--sidew) minmax(0,1fr) 0}
-  :root[data-view="notes"] .todo{display:none}
+  :root[data-view="notes"] .shell,:root[data-view="settings"] .shell{grid-template-columns:var(--sidew) minmax(0,1fr) 0}
+  :root[data-view="notes"] .todo,:root[data-view="settings"] .todo{display:none}
   :root[data-view="notes"] main{display:flex;flex-direction:column}
 }
 @media (min-width:640px){ .notes-list{grid-template-columns:1fr 1fr} }
