@@ -205,6 +205,11 @@ textarea.inp{min-height:70px;resize:vertical}
 :root[data-theme="dark"] .md-view mark,:root:not([data-theme="light"]) .md-view mark{background:#6b5a12;color:#ffe88a}
 .md-view strong{font-weight:700}
 .md-view u{text-decoration-thickness:1.5px;text-underline-offset:2px}
+.md-table-wrap{overflow-x:auto;margin:10px 0;border-radius:8px}
+.md-table{border-collapse:collapse;font-size:.95em}
+.md-table th,.md-table td{border:1px solid var(--line);padding:6px 11px;text-align:left;vertical-align:top;min-width:60px}
+.md-table th{background:var(--surface2);font-weight:700;white-space:nowrap}
+.md-table tbody tr:nth-child(even) td{background:color-mix(in srgb,var(--surface2) 45%,transparent)}
 .tree-scroll{flex:1;min-height:0;overflow:auto}
 .tree-row{display:flex;align-items:center;gap:2px;border-radius:8px;padding-left:calc(var(--d,0) * 16px)}
 .tree-row:hover{background:var(--surface2)}
@@ -465,7 +470,7 @@ textarea.note-body-ta{min-height:46vh;line-height:1.65}
 'use strict';
 
 /* ---------- 유틸 ---------- */
-const APP_VERSION = '2.01';      // 릴리스 버전 (CHANGELOG.md 참고). release.yml이 이 값을 읽어 빌드 이름을 정함
+const APP_VERSION = '2.02';      // 릴리스 버전 (CHANGELOG.md 참고). release.yml이 이 값을 읽어 빌드 이름을 정함
 const KEY = 'workcal.v1';
 const COLORS = ['#2f6fed','#1f9d55','#e8833a','#d93838','#8b5cf6','#0ea5a4','#6b7280'];
 const DOW = ['일','월','화','수','목','금','토'];
@@ -985,6 +990,7 @@ function renderModal(){
       <button class="btn sm" data-act="md-wrap" data-pre="==" data-post="==" title="하이라이트 (Ctrl+Shift+H)"><mark>H</mark></button>
       <button class="btn sm" data-act="md-date" title="오늘 날짜 삽입">${ICON.cal}</button>
       <button class="btn sm" data-act="md-hr" title="구분선">─</button>
+      <button class="btn sm" data-act="md-table" title="표">⊞</button>
       <button class="btn sm" data-act="link-menu" title="메모 링크 [[ ]]">🔗</button>
     </div>
     <div class="hl-wrap">
@@ -1407,6 +1413,7 @@ document.addEventListener('click', e => {
       break;
     }
     case 'md-hr': { const ta = document.querySelector('[data-f="body"]'); const atLineStart = ta && (ta.selectionStart === 0 || ta.value[ta.selectionStart-1] === '\n'); insertAtCaret((atLineStart ? '' : '\n') + '---\n'); break; }
+    case 'md-table': insertTable(); break;
     case 'set-notefont': state.settings.noteFont = el.dataset.v; save(); render(); break;
     case 'dup-note': {
       const src = state.notes.find(n => n.id === id); if (!src) break;
@@ -1835,23 +1842,36 @@ function expandMultilineMarks(s){
     }).join('\n');
   });
 }
+const tblRow = s => /^\|.*\|$/.test(s);
+const tblSep = s => /^\|[\s:|-]+\|$/.test(s) && s.includes('-');
+const tblCells = s => s.replace(/^\||\|$/g, '').split('|').map(c => c.trim());
 function renderNoteBody(body, noteId, fromLine){
   const lines = expandMultilineMarks(body).split('\n');
   let html = '', any = false;
-  lines.forEach((raw, idx) => {
-    if (idx < (fromLine||0)) return;
-    const line = raw.replace(/\t/g, '  ');
+  for (let idx = (fromLine||0); idx < lines.length; idx++){
+    const line = lines[idx].replace(/\t/g, '  ');
+    const t = line.trim();
+    // 표: 헤더행 + 구분행(---) + 데이터행들
+    if (tblRow(t) && idx+1 < lines.length && tblSep(lines[idx+1].trim())){
+      const head = tblCells(t), ncol = head.length, rows = [];
+      let j = idx + 2;
+      while (j < lines.length && tblRow(lines[j].trim())){ rows.push(tblCells(lines[j].trim())); j++; }
+      const col = (r, k) => `<td>${inlineMd(r[k] || '')}</td>`;
+      html += `<div class="md-table-wrap"><table class="md-table"><thead><tr>${head.map(c=>`<th>${inlineMd(c)}</th>`).join('')}</tr></thead><tbody>${
+        rows.map(r => `<tr>${Array.from({length:ncol}, (_,k)=>col(r,k)).join('')}</tr>`).join('')}</tbody></table></div>`;
+      any = true; idx = j - 1; continue;
+    }
     const pad = Math.min(line.match(/^ */)[0].length, 20) * 11;
-    const t = line.trim(), style = `style="padding-left:${pad}px"`;
-    if (!t){ html += '<div class="md-blank"></div>'; return; }
-    if (/^(-{3,}|\*{3,}|_{3,})$/.test(t)){ html += '<hr class="md-hr">'; any = true; return; }
+    const style = `style="padding-left:${pad}px"`;
+    if (!t){ html += '<div class="md-blank"></div>'; continue; }
+    if (/^(-{3,}|\*{3,}|_{3,})$/.test(t)){ html += '<hr class="md-hr">'; any = true; continue; }
     any = true; let m;
-    if (m = t.match(/^(#{1,3})\s+(.*)$/)){ html += `<div class="md-h h${m[1].length}" ${style}>${inlineMd(m[2])}</div>`; return; }
-    if (m = t.match(/^\[([ xX])\]\s+(.*)$/)){ const on = m[1] !== ' '; html += `<label class="md-chk ${on?'on':''}" ${style}><input type="checkbox" ${on?'checked':''} data-act="note-chk" data-id="${noteId}" data-line="${idx}"><span>${inlineMd(m[2])}</span></label>`; return; }
-    { const nm = numMarker(t); if (nm){ const c = t.slice(nm.mk.length); html += `<div class="md-li" ${style}><span class="md-mk num">${esc(numLabel(nm.style, nm.num))}</span><span>${inlineMd(c)}</span></div>`; return; } }
-    if (m = t.match(/^[-•]\s+(.*)$/)){ html += `<div class="md-li" ${style}><span class="md-mk">•</span><span>${inlineMd(m[1])}</span></div>`; return; }
+    if (m = t.match(/^(#{1,3})\s+(.*)$/)){ html += `<div class="md-h h${m[1].length}" ${style}>${inlineMd(m[2])}</div>`; continue; }
+    if (m = t.match(/^\[([ xX])\]\s+(.*)$/)){ const on = m[1] !== ' '; html += `<label class="md-chk ${on?'on':''}" ${style}><input type="checkbox" ${on?'checked':''} data-act="note-chk" data-id="${noteId}" data-line="${idx}"><span>${inlineMd(m[2])}</span></label>`; continue; }
+    { const nm = numMarker(t); if (nm){ const c = t.slice(nm.mk.length); html += `<div class="md-li" ${style}><span class="md-mk num">${esc(numLabel(nm.style, nm.num))}</span><span>${inlineMd(c)}</span></div>`; continue; } }
+    if (m = t.match(/^[-•]\s+(.*)$/)){ html += `<div class="md-li" ${style}><span class="md-mk">•</span><span>${inlineMd(m[1])}</span></div>`; continue; }
     html += `<div class="md-p" ${style}>${inlineMd(t)}</div>`;
-  });
+  }
   return any ? html : '<p class="hint">내용이 없어요. 편집을 눌러 작성하세요.</p>';
 }
 function folderTreeHtml(pid, depth){
@@ -2162,6 +2182,7 @@ function slashCmds(){
     { badge:'U',  label:'밑줄',       run:()=>wrapSel('__','__') },
     { badge:'H',  label:'하이라이트',  run:()=>wrapSel('==','==') },
     { badge:'—',  label:'구분선',      run:()=>insertHr() },
+    { badge:'⊞',  label:'표',         run:()=>insertTable() },
     { badge:'📅', label:'오늘 날짜',   run:()=>insertAtCaret(todayStr()) },
     { badge:'[[', label:'메모 링크',   run:()=>openLinkMenu() },
   ];
@@ -2170,6 +2191,11 @@ function insertHr(){
   const ta = document.querySelector('[data-f="body"]'); if (!ta) return;
   const atLineStart = ta.selectionStart === 0 || ta.value[ta.selectionStart-1] === '\n';
   insertAtCaret((atLineStart ? '' : '\n') + '---\n');
+}
+function insertTable(){
+  const ta = document.querySelector('[data-f="body"]'); if (!ta) return;
+  const atLineStart = ta.selectionStart === 0 || ta.value[ta.selectionStart-1] === '\n';
+  insertAtCaret((atLineStart ? '' : '\n') + '| 제목1 | 제목2 |\n| --- | --- |\n| 내용 | 내용 |\n');
 }
 function slashQuery(){                                       // 현재 '/쿼리' 문자열(쿼리만). 유효하지 않으면 null
   const ta = document.querySelector('[data-f="body"]'); if (!ta || slashAt < 0) return null;
@@ -2182,7 +2208,10 @@ function slashQuery(){                                       // 현재 '/쿼리'
 function slashFiltered(){
   const q = slashQuery(); if (q == null) return null;
   const all = slashCmds();
-  return q ? all.filter(c => c.label.toLowerCase().includes(q)) : all;
+  if (!q) return all;
+  const hit = all.filter(c => c.label.toLowerCase().includes(q));
+  hit.sort((a, b) => (b.label.toLowerCase().startsWith(q) ? 1 : 0) - (a.label.toLowerCase().startsWith(q) ? 1 : 0));  // 접두어 일치 우선
+  return hit;
 }
 function closeSlash(){ slashAt = -1; const m = document.getElementById('slashMenu'); if (m) m.remove(); }
 function openSlash(){
